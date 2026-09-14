@@ -1,0 +1,249 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { MEMBERS, defaultViews, memberById, type MemberView } from "../lib/members";
+import { BOTTOM_TABS, TOP_TABS, firstDomain, firstStructure, isAddToken, isPipe, workspaceLabel, type WorkspaceId } from "../lib/nav";
+import { Rail } from "./Rail";
+import { Header } from "./Header";
+import { DomainBar } from "./DomainBar";
+import { ActionToolbar, GridModeBar, PovBar, ViewToolbar } from "./Toolbars";
+import { LeftPane } from "./LeftPane";
+import { MemberGrid } from "./MemberGrid";
+import { PropertiesPane } from "./PropertiesPane";
+import { StructureBar } from "./StructureBar";
+import { CollapsedChromeStrip, Footer, WorkspaceStub } from "./Chrome";
+import { MemberConfiguration } from "./MemberConfiguration";
+import { ViewManagerDialog } from "./ViewManager";
+import { ViewSwitcher } from "./ViewSwitcher";
+import { DEFAULT_COLUMNS, type DisplaySettings, type GridMode, type Mode } from "./types";
+
+/* Below this width the centre would fall under its 600px minimum with the rail open. */
+const NARROW = 1360;
+
+const tabsOf = (list: string[] | undefined) => (list ?? []).filter((t) => !isPipe(t) && !isAddToken(t));
+
+/*
+ * Universal window shell (Spec 110 §5.1, adapted by Prototype 3 A2):
+ *   rail │ Row 1 header · Row 2 domain bar
+ *        │ Row 4 members │ [3a action · 3b view · POV · grid] │ properties
+ *        │ Row 5 structure bar · Row 6 footer
+ *
+ * Mode colour is chrome only (DEC-2026-08-17-C): data-mode on this root drives
+ * every mode-tinted surface beneath it; grid cells never change with mode.
+ */
+export function AppShell() {
+  const [mode, setMode] = useState<Mode>("DATA");
+  const [l100, setL100] = useState(false);
+  const [workspace, setWorkspace] = useState<WorkspaceId>("dimensions");
+  const [domain, setDomain] = useState<string | null>(firstDomain("dimensions"));
+  const [structure, setStructure] = useState<string | null>(firstStructure(firstDomain("dimensions")));
+  const [railExpanded, setRailExpanded] = useState(() => window.innerWidth >= NARROW);
+  const [chromeCollapsed, setChromeCollapsed] = useState(false);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightOpen, setRightOpen] = useState(true);
+
+  const [viewId, setViewId] = useState("master");
+  /* Views are per structure; seeded lazily the first time a structure is shown. */
+  const [viewsBy, setViewsBy] = useState<Record<string, MemberView[]>>({});
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [member, setMember] = useState<string | null>(null);
+  const [peek, setPeek] = useState<string | null>(null);
+  const [gridQuery, setGridQuery] = useState("");
+  const [display, setDisplay] = useState<DisplaySettings>({ rowNumbers: true, gridlines: true, zebra: false });
+  const [columns, setColumns] = useState(DEFAULT_COLUMNS);
+
+  const [gridMode, setGridMode] = useState<GridMode>(null);
+  const [bulkSel, setBulkSel] = useState<string[]>([]);
+  /* Reorder is STAGED: order can be load-bearing (allocation sequence), so it
+     never changes on a stray drag. Cancel discards; Save commits. */
+  const [order, setOrder] = useState<string[] | null>(null);
+  const [committedOrder, setCommittedOrder] = useState<string[]>(MEMBERS.map((m) => m.id));
+  const [deleted, setDeleted] = useState<string[]>([]);
+
+  const canAuthor = mode === "MODEL" || l100;
+  const exitGridMode = useCallback(() => { setGridMode(null); setBulkSel([]); setOrder(null); }, []);
+
+  /* Workspace → first domain → first structure; subject changes reset selection. */
+  const changeWorkspace = (ws: WorkspaceId) => {
+    setWorkspace(ws);
+    const d = firstDomain(ws);
+    setDomain(d);
+    setStructure(firstStructure(d));
+    setMember(null);
+    setPeek(null);
+    setChooserOpen(false);
+    exitGridMode();
+  };
+  const changeDomain = (d: string) => { setDomain(d); setStructure(firstStructure(d)); setPeek(null); setChooserOpen(false); };
+  const changeMode = (m: Mode) => { setMode(m); setMember(null); setPeek(null); exitGridMode(); };
+
+  /* Portalled surfaces (popovers, the view picker, Manage views, confirms)
+     render under <body>, outside this root; mirror the mode onto <html> so
+     their mode colour matches the chrome that opened them. */
+  const shellMode = l100 ? "L100" : mode;
+  useEffect(() => {
+    document.documentElement.dataset.mode = shellMode;
+    return () => { delete document.documentElement.dataset.mode; };
+  }, [shellMode]);
+
+  /* Auto-collapse the rail at the width where the default would be wrong;
+     never override a deliberate collapse on a wide screen. */
+  useEffect(() => {
+    let narrow = window.innerWidth < NARROW;
+    const onResize = () => {
+      const now = window.innerWidth < NARROW;
+      if (now !== narrow) { narrow = now; setRailExpanded(!now); }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  /* Shell shortcuts (Spec 110 §6.1). */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.shiftKey && e.key.toLowerCase() === "f") { e.preventDefault(); setChromeCollapsed((c) => !c); return; }
+      if (e.key === "Escape" && gridMode) { exitGridMode(); return; }
+      if ((e.key === "PageUp" || e.key === "PageDown") && (e.ctrlKey || e.altKey)) {
+        e.preventDefault();
+        const d = e.key === "PageDown" ? 1 : -1;
+        if (e.ctrlKey) {
+          const tabs = tabsOf(TOP_TABS[workspace]);
+          if (!tabs.length) return;
+          changeDomain(tabs[(tabs.indexOf(domain ?? "") + d + tabs.length) % tabs.length]);
+        } else {
+          const tabs = tabsOf(domain ? BOTTOM_TABS[domain] : []);
+          if (!tabs.length) return;
+          setStructure(tabs[(tabs.indexOf(structure ?? "") + d + tabs.length) % tabs.length]);
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
+
+  /* A structure change always lands on its Master list. */
+  useEffect(() => { setViewId("master"); }, [structure]);
+  const views = viewsBy[structure ?? ""] ?? defaultViews(structure);
+  const setViews = (next: MemberView[]) => setViewsBy((m) => ({ ...m, [structure ?? ""]: next }));
+  const view = views.find((v) => v.id === viewId) ?? views[0];
+  const baseRows = useMemo(() => {
+    const ids = order ?? committedOrder;
+    return ids.filter((id) => view.ids.includes(id) && !deleted.includes(id))
+      .map((id) => memberById(id)!)
+      .filter((m) => {
+        const q = gridQuery.trim().toLowerCase();
+        return !q || m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q);
+      });
+  }, [order, committedOrder, view, deleted, gridQuery]);
+
+  const moveRow = (index: number, delta: number) => {
+    const ids = baseRows.map((m) => m.id);
+    const j = index + delta;
+    if (j < 0 || j >= ids.length) return;
+    ids.splice(j, 0, ids.splice(index, 1)[0]);
+    const rest = (order ?? committedOrder).filter((id) => !ids.includes(id));
+    setOrder([...ids, ...rest]);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-grip="${ids[j]}"]`)?.focus());
+  };
+
+  const isDimensions = workspace === "dimensions";
+  /* MODEL + member selected → member configuration (CH-002), no far-right pane. */
+  const memberMode = isDimensions && mode === "MODEL" && member !== null;
+  /* MODEL master list has no properties pane: it could only restate the name. */
+  const showProperties = isDimensions && !memberMode && !(mode === "MODEL" && member === null);
+  const memberName = memberById(peek ?? member)?.name ?? null;
+  const pathLabel = [workspaceLabel(workspace), domain, structure].filter(Boolean).join(" › ");
+
+  return (
+    <div data-mode={l100 ? "L100" : mode} className="flex h-full min-w-0 bg-canvas text-ui text-fg-primary">
+      <Rail workspace={workspace} onWorkspace={changeWorkspace} expanded={railExpanded} onExpanded={setRailExpanded}
+        l100={l100} onL100={setL100} chromeCollapsed={chromeCollapsed} />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {chromeCollapsed ? (
+          <CollapsedChromeStrip label={l100 ? "L100" : mode} path={pathLabel} onRestore={() => setChromeCollapsed(false)} />
+        ) : (
+          <>
+            <Header workspace={workspace} domain={domain} structure={structure}
+              memberName={memberById(member)?.name ?? null} l100={l100} />
+            <DomainBar workspace={workspace} domain={domain} onDomain={changeDomain}
+              mode={mode} onMode={changeMode} l100={l100} onL100={setL100} />
+          </>
+        )}
+
+        <main className="flex min-h-0 flex-1 overflow-x-auto bg-canvas">
+          {isDimensions && (
+            <LeftPane collapsed={leftCollapsed} onCollapsed={setLeftCollapsed} canAuthor={canAuthor}
+              member={member} onMember={(id) => { setMember(id); setPeek(null); }} peek={peek}
+              structure={structure} view={view} hidden={deleted}
+              chooserOpen={chooserOpen} onChooser={(o) => { setChooserOpen(o); if (o) exitGridMode(); }}
+ />
+          )}
+
+          {memberMode ? (
+            <MemberConfiguration key={member} name={memberById(member)!.name} structure={structure}
+              locked={Boolean(memberById(member)?.locked)}
+              chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed}
+              onExit={() => setMember(null)}
+              onDelete={() => { setDeleted((d) => [...d, member!]); setMember(null); }} />
+          ) : (
+            <section aria-label="Work area" className="flex min-w-centre-min flex-1 flex-col overflow-hidden border-s border-line-subtle bg-grid-container">
+              {gridMode ? (
+                <GridModeBar kind={gridMode} count={bulkSel.length} onCancel={exitGridMode}
+                  onSave={() => {
+                    if (gridMode === "reorder" && order) setCommittedOrder(order);
+                    if (gridMode === "delete") setDeleted((d) => [...d, ...bulkSel]);
+                    exitGridMode();
+                  }} />
+              ) : (
+                <ActionToolbar canAuthor={canAuthor} onGridMode={setGridMode}
+                  chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed} />
+              )}
+              {/* Positioning context for the model + view panel: it docks here, below the action toolbar. */}
+              <div className="relative flex min-h-0 flex-1 flex-col">
+                {!chromeCollapsed && (
+                  <ViewToolbar query={gridQuery} onQuery={setGridQuery} display={display} onDisplay={setDisplay}
+                    columns={columns} onColumns={setColumns} />
+                )}
+                <PovBar />
+                {isDimensions ? (
+                  <MemberGrid members={baseRows} columns={columns.visible} display={display}
+                    member={member} peek={peek} onPeek={setPeek}
+                    gridMode={gridMode} bulkSel={bulkSel} onBulkSel={setBulkSel} onMove={moveRow}
+                    emptyMessage={gridQuery ? `No members match “${gridQuery}”.` : undefined} />
+                ) : (
+                  <WorkspaceStub name={workspaceLabel(workspace)} />
+                )}
+                {isDimensions && (
+                  <ViewSwitcher open={chooserOpen} onClose={() => setChooserOpen(false)}
+                    structure={structure} structureTokens={domain ? BOTTOM_TABS[domain] ?? [] : []}
+                    onStructure={(st) => { setStructure(st); setPeek(null); }}
+                    views={views} activeId={view.id} onActivate={(id) => { setViewId(id); setPeek(null); }}
+                    memberIds={MEMBERS.filter((m) => !deleted.includes(m.id)).map((m) => m.id)}
+                    canManage={canAuthor} onManage={() => { setChooserOpen(false); setManageOpen(true); }} />
+                )}
+              </div>
+            </section>
+          )}
+
+          {showProperties && (
+            <PropertiesPane open={rightOpen} onOpen={setRightOpen} domain={domain} structure={structure}
+              memberName={memberName} memberLocked={Boolean(memberById(peek ?? member)?.locked)} />
+          )}
+        </main>
+
+        {isDimensions && manageOpen && (
+          <ViewManagerDialog key={structure ?? ""} structure={structure}
+            structureTokens={domain ? BOTTOM_TABS[domain] ?? [] : []} onStructure={(st) => { setStructure(st); setPeek(null); }}
+            members={MEMBERS.filter((m) => !deleted.includes(m.id))}
+            views={views} onViews={setViews} activeId={view.id} canAuthor={canAuthor}
+            onActivate={(id) => { setViewId(id); setPeek(null); }} onClose={() => setManageOpen(false)} />
+        )}
+
+        <StructureBar workspace={workspace} domain={domain} structure={structure} onStructure={setStructure}
+          canAuthor={canAuthor} l100={l100} />
+        <Footer />
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,266 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "./colors.generated.css";
+
+/*
+ * ClarityOS design tokens → Tailwind utilities.
+ *
+ * Tailwind's default palette, type scale, radii, shadows and easings are
+ * cleared, so a component can only reach values this file declares.
+ *
+ * Colours use `@theme inline` so utilities reference the role variable
+ * directly. That is what lets data-mode="DATA|MODEL|L100" on the shell root
+ * recolour mode chrome for everything beneath it.
+ *
+ * Geometry is the prototype's LOCKED + PROTO_GEO table (Prototype 3) — the
+ * 6-row shell, pane widths, control heights.
+ */
+
+@theme inline {
+  --color-*: initial;
+
+  --color-canvas: var(--role-canvas);
+  --color-shell: var(--role-shell);
+  --color-shell-alt: var(--role-shell-alt);
+  --color-surface: var(--role-surface);
+  --color-subtle: var(--role-subtle);
+  --color-hover: var(--role-hover);
+  --color-inverse: var(--role-inverse);
+  /* `selected` kept for the assign surface; it is the mode's soft tint */
+  --color-selected: var(--role-mode-soft);
+
+  --color-grid-container: var(--role-grid-container);
+  --color-grid-line: var(--role-grid-line);
+  --color-grid-line-col: var(--role-grid-line-col);
+  --color-grid-header: var(--role-grid-header);
+
+  --color-fg-primary: var(--role-fg-primary);
+  --color-fg-secondary: var(--role-fg-secondary);
+  --color-fg-tertiary: var(--role-fg-tertiary);
+  --color-fg-icon: var(--role-fg-icon);
+  --color-fg-disabled: var(--role-fg-disabled);
+  --color-fg-on-accent: var(--role-fg-on-accent);
+  --color-fg-on-danger: var(--role-fg-on-danger);
+  --color-fg-on-inverse: var(--role-fg-on-inverse);
+
+  --color-line-subtle: var(--role-line-subtle);
+  --color-line-strong: var(--role-line-strong);
+  --color-line-control: var(--role-line-control);
+  --color-line-control-hover: var(--role-line-control-hover);
+  --color-control-track: var(--role-control-track);
+  --color-control-thumb: var(--role-control-thumb);
+
+  --color-rail-bg: var(--role-rail-bg);
+  --color-rail-line: var(--role-rail-line);
+  --color-rail-fg: var(--role-rail-fg);
+  --color-rail-fg-secondary: var(--role-rail-fg-secondary);
+  --color-rail-fg-tertiary: var(--role-rail-fg-tertiary);
+  --color-rail-fg-quiet: var(--role-rail-fg-quiet);
+  --color-rail-control-edge: var(--role-rail-control-edge);
+
+  --color-mode-solid: var(--role-mode-solid);
+  --color-mode-soft: var(--role-mode-soft);
+  --color-mode-ink: var(--role-mode-ink);
+  --color-mode-deep: var(--role-mode-deep);
+
+  /* Assign surface vocabulary → mode (it renders inside MODEL chrome). */
+  --color-accent-solid: var(--role-mode-solid);
+  --color-accent-solid-hover: var(--role-mode-ink);
+  --color-accent-text: var(--role-mode-ink);
+  --color-accent-soft: var(--role-mode-soft);
+
+  --color-action: var(--role-action);
+  --color-focus: var(--role-focus);
+  --color-l100-solid: var(--role-l100-solid);
+  --color-l100-soft: var(--role-l100-soft);
+  --color-l100-ink: var(--role-l100-ink);
+
+  --color-danger-solid: var(--role-danger-solid);
+  --color-danger-solid-hover: var(--role-danger-solid-hover);
+  --color-danger-text: var(--role-danger-text);
+  --color-danger-soft: var(--role-danger-soft);
+  --color-warning-solid: var(--role-warning-solid);
+  --color-warning-icon: var(--role-warning-icon);
+  --color-warning-text: var(--role-warning-text);
+  --color-warning-soft: var(--role-warning-soft);
+  --color-success-text: var(--role-success-text);
+  --color-success-icon: var(--role-success-icon);
+  --color-success-soft: var(--role-success-soft);
+  --color-info-text: var(--role-info-text);
+  --color-info-soft: var(--role-info-soft);
+  --color-info-line: var(--role-info-line);
+
+  /* Translucent fills for controls sitting ON a mode-coloured bar. */
+  --color-on-bar: oklch(1 0 0 / 0.1);
+  --color-on-bar-hover: oklch(1 0 0 / 0.2);
+  --color-on-bar-edge: oklch(1 0 0 / 0.45);
+  --color-on-bar-edge-strong: oklch(1 0 0 / 0.6);
+  --color-rail-active: oklch(1 0 0 / 0.13);
+  --color-rail-control: oklch(1 0 0 / 0.06);
+  --color-scrim: oklch(0.22 0.01 60 / 0.34);
+
+  --color-transparent: transparent;
+  --color-current: currentColor;
+}
+
+@theme {
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --ease-*: initial;
+  --font-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+
+  /* ── typography · Inter (prototype S3, Spec 110 §4.1) ─────────────────── */
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* The prototype uses 11px micro text throughout. Raised to 12px: below that
+     a dense grid is not reliably legible (docs/02-styleguide.md). The 9px
+     eyebrow survives only as an uppercase label above a value it names. */
+  --text-micro: 0.5625rem;          /* 9px · uppercase eyebrows (POV, selectors) */
+  --text-micro--line-height: 0.75rem;
+  --text-caption: 0.75rem;          /* 12px · prototype fontMicro 11 → 12   */
+  --text-caption--line-height: 1rem;
+  --text-ui: 0.8125rem;             /* 13px · PROTO_GEO.fontUI · grid cells  */
+  --text-ui--line-height: 1.25rem;
+  --text-body: 0.875rem;            /* 14px · window title, dialogs          */
+  --text-body--line-height: 1.375rem;
+  --text-input-mobile: 1rem;
+  --text-input-mobile--line-height: 1.5rem;
+  --text-title: 0.9375rem;          /* 15px · member name, stub heading      */
+  --text-title--line-height: 1.375rem;
+  --text-heading: 1.25rem;          /* 20px · styleguide                     */
+  --text-heading--line-height: 1.75rem;
+  --text-display: 1.5625rem;
+  --text-display--line-height: 1.875rem;
+
+  --tracking-label: 0.03em;
+  --tracking-eyebrow: 0.05em;
+  --tracking-title: 0.045em;        /* uppercase window title                */
+  --tracking-heading: -0.01em;
+
+  --leading-tight: 1.15;
+  --leading-body: 1.5;
+
+  /* ── spacing · 4px base ───────────────────────────────────────────────── */
+  --spacing: 0.25rem;
+
+  /* Shell geometry · LOCKED (Prototype 3) */
+  --spacing-row-header: 3.75rem;    /* 60 · Row 1 window header              */
+  --spacing-row-domain: 3rem;       /* 48 · Row 2 domain bar                 */
+  --spacing-row-toolbar: 2.75rem;   /* 44 · Rows 3a/3b, POV, pane headers    */
+  --spacing-row-structure: 3rem;    /* 48 · Row 5 structure bar              */
+  --spacing-row-footer: 1.75rem;    /* 28 · Row 6 footer                     */
+  --spacing-rail: 12.5rem;          /* 200 · workspace rail expanded         */
+  --spacing-rail-icon: 3.5rem;      /* 56 · workspace rail collapsed         */
+  --spacing-left-pane: 15rem;       /* 240 · members pane                    */
+  --spacing-left-rail: 2rem;        /* 32 · members pane collapsed           */
+  --spacing-right-pane: 17.5rem;    /* 280 · properties pane                 */
+  --spacing-right-rail: 1.75rem;    /* 28 · properties pane collapsed        */
+  --spacing-cfg-index: 13.25rem;    /* 212 · configuration section index     */
+  --spacing-centre-min: 37.5rem;    /* 600 · centre pane never narrower      */
+  --spacing-edge: 1.125rem;         /* 18 · shell inline edge                */
+  --spacing-tab-inset: 0.8125rem;   /* 13 · domain tab padding               */
+
+  /* Controls · PROTO_GEO */
+  --spacing-button: 1.625rem;       /* 26 · toolbar + ghost buttons          */
+  --spacing-control-h: 1.875rem;    /* 30 · mode pill, header selectors      */
+  --spacing-control-form: 2rem;     /* 32 · form inputs                      */
+  --spacing-pov: 2.125rem;          /* 34 · POV selector                     */
+  --spacing-grid-head: 1.625rem;    /* 26 · member grid header               */
+  --spacing-grid-row: 1.875rem;     /* 30 · member grid row                  */
+  --spacing-band: 1.625rem;         /* 26 · property section band            */
+
+  /* Assign surface geometry (Step 2) */
+  --spacing-assign-band: 2.5rem;
+  --spacing-head: 2rem;
+  --spacing-row: 2.25rem;
+  --spacing-control: 1.75rem;
+  --spacing-control-sm: 1.5rem;
+  --spacing-col-index: 1.5rem;
+  --spacing-col-grip: 1.5rem;
+  --spacing-col-members: 5.5rem;
+  --spacing-col-toggle: 5rem;
+  --spacing-col-access: 5.25rem;
+  --spacing-col-qty: 4.5rem;
+  --spacing-col-action: 1.5rem;
+  --spacing-col-region: 8rem;
+  --spacing-menu: 14rem;
+
+  /* Member grid columns · MemberGrid */
+  --spacing-col-code: 6rem;         /* 96  */
+  --spacing-col-type: 6.875rem;     /* 110 */
+  --spacing-col-status: 6.875rem;   /* 110 */
+
+  /* ── radius · PROTO_GEO ───────────────────────────────────────────────── */
+  --radius-chip: 0.25rem;           /* 4 · chips, icon buttons, menu items   */
+  --radius-sm: 0.25rem;
+  --radius-control: 0.3125rem;      /* 5 · controls                          */
+  --radius-md: 0.375rem;            /* 6 · mode pill buttons                 */
+  --radius-panel: 0.5rem;           /* 8 · popovers, dialogs, mode pill      */
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+
+  /* ── elevation ────────────────────────────────────────────────────────── */
+  --shadow-popover: 0 16px 48px oklch(0 0 0 / 0.22);   /* PROTO_FEEDBACK.modalShadow */
+  --shadow-lift: 0 1px 2px oklch(0 0 0 / 0.08);        /* active mode pill            */
+  --shadow-thumb: 0 1px 2px oklch(0 0 0 / 0.25);
+
+  /* ── motion ───────────────────────────────────────────────────────────── */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --default-transition-duration: 120ms;
+  --default-transition-timing-function: var(--ease-standard);
+}
+
+@layer base {
+  *, ::before, ::after { border-color: var(--color-line-subtle); }
+
+  html, body, #root { height: 100%; }
+
+  html {
+    font-family: var(--font-sans);
+    background: var(--color-canvas);
+    color: var(--color-fg-primary);
+    font-size: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus: prototype orange ring (Spec 110 §8.2), 2px, inset so the dense
+     shell's overflow never clips it. Verified ≥3:1 on every neutral ground.
+     On mode-coloured bars the ring turns white (`.on-bar`). */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+  .on-bar :focus-visible { outline-color: var(--color-fg-on-accent); }
+
+  @media (forced-colors: active) {
+    :focus-visible { outline-color: Highlight; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0ms !important;
+      animation-duration: 0ms !important;
+    }
+  }
+
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+/* Caret reveal on tabs: persistent on the active tab, revealed on hover or
+   keyboard focus elsewhere. pointer-events off while hidden so an invisible
+   caret never swallows a click. */
+@utility caret-reveal {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms var(--ease-standard);
+  :where(.caret-host:hover, .caret-host:focus-within) & {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

@@ -1,0 +1,713 @@
+{
+  "primitives": {
+    "action-bronze": "#8A4B2A",
+    "amber-100": "#FEF3C7",
+    "amber-700": "#B45309",
+    "data-ink": "#1A47A8",
+    "data-soft": "#E8EFFD",
+    "data-solid": "#235FE0",
+    "focus-orange": "#EA580C",
+    "green-700": "#0B7C56",
+    "grid-container": "#FBFBFC",
+    "grid-header": "#F4F4F6",
+    "grid-line": "#E7E7EA",
+    "grid-line-col": "#DEDEE3",
+    "l100-ink": "#4A1B93",
+    "l100-soft": "#F1EAFB",
+    "l100-solid": "#5B21B6",
+    "model-ink": "#0A5D42",
+    "model-soft": "#E6F5EF",
+    "model-solid": "#0A7652",
+    "rail-bg": "#161616",
+    "rail-control-edge": "#3D3D3D",
+    "rail-ink": "#F2EFEA",
+    "rail-ink-2": "#B5AFA4",
+    "rail-ink-3": "#9C968B",
+    "rail-ink-4": "#918C83",
+    "rail-line": "#2C2C2C",
+    "red-100": "#FEE2E2",
+    "red-700": "#B91C1C",
+    "red-800": "#991B1B",
+    "slate-100": "#F1F5F9",
+    "slate-300": "#CBD5E1",
+    "slate-700": "#334155",
+    "warm-canvas": "#FAF9F7",
+    "warm-control-track": "#8D8984",
+    "warm-ink": "#22201D",
+    "warm-ink-2": "#55504A",
+    "warm-ink-3": "#706A63",
+    "warm-ink-4": "#8D877F",
+    "warm-ink-disabled": "#ABA49A",
+    "warm-line": "#E5E1DB",
+    "warm-line-control": "#C4BEB6",
+    "warm-line-control-hover": "#A39D95",
+    "warm-line-strong": "#D5D0C8",
+    "warm-shell": "#F6F4F1",
+    "warm-shell-alt": "#F1EEEA",
+    "white": "#FFFFFF"
+  },
+  "roles": {
+    "canvas": "warm-canvas",
+    "shell": "warm-shell",
+    "shell-alt": "warm-shell-alt",
+    "surface": "white",
+    "subtle": "grid-header",
+    "hover": "warm-shell-alt",
+    "inverse": "warm-ink",
+    "grid-container": "grid-container",
+    "grid-line": "grid-line",
+    "grid-line-col": "grid-line-col",
+    "grid-header": "grid-header",
+    "fg-primary": "warm-ink",
+    "fg-secondary": "warm-ink-2",
+    "fg-tertiary": "warm-ink-3",
+    "fg-icon": "warm-ink-4",
+    "fg-disabled": "warm-ink-disabled",
+    "fg-on-accent": "white",
+    "fg-on-danger": "white",
+    "fg-on-inverse": "white",
+    "line-subtle": "warm-line",
+    "line-strong": "warm-line-strong",
+    "line-control": "warm-line-control",
+    "line-control-hover": "warm-line-control-hover",
+    "control-track": "warm-control-track",
+    "control-thumb": "white",
+    "rail-bg": "rail-bg",
+    "rail-line": "rail-line",
+    "rail-fg": "rail-ink",
+    "rail-fg-secondary": "rail-ink-2",
+    "rail-fg-tertiary": "rail-ink-3",
+    "rail-fg-quiet": "rail-ink-4",
+    "rail-control-edge": "rail-control-edge",
+    "action": "action-bronze",
+    "focus": "focus-orange",
+    "l100-solid": "l100-solid",
+    "l100-soft": "l100-soft",
+    "l100-ink": "l100-ink",
+    "danger-solid": "red-700",
+    "danger-solid-hover": "red-800",
+    "danger-text": "red-700",
+    "danger-soft": "red-100",
+    "warning-solid": "amber-700",
+    "warning-icon": "amber-700",
+    "warning-text": "amber-700",
+    "warning-soft": "amber-100",
+    "success-text": "green-700",
+    "success-icon": "green-700",
+    "success-soft": "model-soft",
+    "info-text": "slate-700",
+    "info-soft": "slate-100",
+    "info-line": "slate-300"
+  },
+  "modeRoles": {
+    "DATA": {
+      "mode-solid": "data-solid",
+      "mode-soft": "data-soft",
+      "mode-ink": "data-ink",
+      "mode-deep": "data-ink"
+    },
+    "MODEL": {
+      "mode-solid": "model-solid",
+      "mode-soft": "model-soft",
+      "mode-ink": "model-ink",
+      "mode-deep": "model-ink"
+    },
+    "L100": {
+      "mode-solid": "l100-solid",
+      "mode-soft": "l100-soft",
+      "mode-ink": "l100-ink",
+      "mode-deep": "l100-ink"
+    }
+  },
+  "modes": [
+    "DATA",
+    "MODEL",
+    "L100"
+  ],
+  "report": [
+    {
+      "mode": "—",
+      "fg": "fg-primary",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 16.25,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-primary",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 14.8,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-primary",
+      "bg": "shell-alt",
+      "min": 4.5,
+      "ratio": 14.05,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-secondary",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 7.98,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-secondary",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 7.27,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-secondary",
+      "bg": "shell-alt",
+      "min": 4.5,
+      "ratio": 6.9,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-secondary",
+      "bg": "grid-header",
+      "min": 4.5,
+      "ratio": 7.26,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 5.34,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 4.87,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "shell-alt",
+      "min": 4.5,
+      "ratio": 4.62,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "canvas",
+      "min": 4.5,
+      "ratio": 5.08,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "grid-header",
+      "min": 4.5,
+      "ratio": 4.86,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "fg-tertiary",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 4.63,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "fg-tertiary",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 4.75,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "fg-tertiary",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 4.55,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-icon",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 3.56,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-icon",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 3.08,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-icon",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 3.24,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "control-track",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 3.47,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "control-thumb",
+      "bg": "control-track",
+      "min": 3,
+      "ratio": 3.47,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "control-thumb",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 5.55,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "control-thumb",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 5.64,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "control-thumb",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 8.98,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid",
+      "min": 4.5,
+      "ratio": 5.55,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid",
+      "min": 4.5,
+      "ratio": 5.64,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid",
+      "min": 4.5,
+      "ratio": 8.98,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid + 10% white",
+      "min": 4.5,
+      "ratio": 4.61,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid + 10% white",
+      "min": 4.5,
+      "ratio": 4.61,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid + 10% white",
+      "min": 4.5,
+      "ratio": 7.23,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 7.25,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 7.03,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 9.58,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "mode-ink",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 8.36,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "mode-ink",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 7.9,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "mode-ink",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 11.23,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "mode-ink",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 7.62,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "mode-ink",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 7.2,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "mode-ink",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 10.23,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "mode-solid",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 5.05,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "mode-solid",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 5.13,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "mode-solid",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 8.18,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "mode-solid",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 4.8,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "mode-solid",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 4.87,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "mode-solid",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 7.77,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "focus",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 3.56,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "focus",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 3.24,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "focus",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 3.08,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "focus",
+      "bg": "grid-header",
+      "min": 3,
+      "ratio": 3.24,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "fg-on-inverse",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 5.55,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "fg-on-inverse",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 5.64,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "fg-on-inverse",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 8.98,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "rail-fg",
+      "bg": "rail-bg",
+      "min": 4.5,
+      "ratio": 15.78,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "rail-fg-secondary",
+      "bg": "rail-bg",
+      "min": 4.5,
+      "ratio": 8.3,
+      "pass": true
+    },
+    {
+      "mode": "DATA",
+      "fg": "rail-fg",
+      "bg": "mode-deep",
+      "min": 4.5,
+      "ratio": 7.29,
+      "pass": true
+    },
+    {
+      "mode": "MODEL",
+      "fg": "rail-fg",
+      "bg": "mode-deep",
+      "min": 4.5,
+      "ratio": 6.89,
+      "pass": true
+    },
+    {
+      "mode": "L100",
+      "fg": "rail-fg",
+      "bg": "mode-deep",
+      "min": 4.5,
+      "ratio": 9.8,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "rail-fg-tertiary",
+      "bg": "rail-bg",
+      "min": 4.5,
+      "ratio": 6.16,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "rail-fg-quiet",
+      "bg": "rail-bg",
+      "min": 4.5,
+      "ratio": 5.41,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "action",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 6.13,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "action",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 6.73,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "l100-ink",
+      "bg": "l100-soft",
+      "min": 4.5,
+      "ratio": 9.58,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-on-accent",
+      "bg": "l100-solid",
+      "min": 4.5,
+      "ratio": 8.98,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "danger-text",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 6.47,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "danger-text",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 5.89,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-on-danger",
+      "bg": "danger-solid",
+      "min": 4.5,
+      "ratio": 6.47,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "danger-text",
+      "bg": "danger-soft",
+      "min": 4.5,
+      "ratio": 5.3,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-on-accent",
+      "bg": "warning-solid",
+      "min": 4.5,
+      "ratio": 5.02,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "warning-text",
+      "bg": "warning-soft",
+      "min": 4.5,
+      "ratio": 4.51,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "warning-icon",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 5.02,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "success-text",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 5.21,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "success-icon",
+      "bg": "success-soft",
+      "min": 3,
+      "ratio": 4.63,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "info-text",
+      "bg": "info-soft",
+      "min": 4.5,
+      "ratio": 9.45,
+      "pass": true
+    },
+    {
+      "mode": "—",
+      "fg": "fg-on-inverse",
+      "bg": "inverse",
+      "min": 4.5,
+      "ratio": 16.25,
+      "pass": true
+    }
+  ]
+}
