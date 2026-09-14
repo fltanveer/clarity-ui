@@ -187,6 +187,10 @@ export function AppShell() {
  />
           )}
 
+          {/* Positioning context for the model + view panel. It docks below the
+              44px toolbar row that both the work area (action toolbar) and member
+              configuration (its header) start with, so it opens from either. */}
+          <div className="relative flex min-h-0 min-w-0 flex-1">
           {memberMode ? (
             <MemberConfiguration key={member} name={memberById(member)!.name} structure={structure}
               locked={Boolean(memberById(member)?.locked)}
@@ -206,8 +210,7 @@ export function AppShell() {
                 <ActionToolbar canAuthor={canAuthor} onGridMode={setGridMode}
                   chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed} />
               )}
-              {/* Positioning context for the model + view panel: it docks here, below the action toolbar. */}
-              <div className="relative flex min-h-0 flex-1 flex-col">
+              <div className="flex min-h-0 flex-1 flex-col">
                 {!chromeCollapsed && (
                   <ViewToolbar query={gridQuery} onQuery={setGridQuery} display={display} onDisplay={setDisplay}
                     columns={columns} onColumns={setColumns} />
@@ -221,17 +224,18 @@ export function AppShell() {
                 ) : (
                   <WorkspaceStub name={workspaceLabel(workspace)} />
                 )}
-                {isDimensions && (
-                  <ViewSwitcher open={chooserOpen} onClose={() => setChooserOpen(false)}
-                    structure={structure} structureTokens={domain ? BOTTOM_TABS[domain] ?? [] : []}
-                    onStructure={(st) => { setStructure(st); setPeek(null); }}
-                    views={views} activeId={view.id} onActivate={(id) => { setViewId(id); setPeek(null); }}
-                    memberIds={MEMBERS.filter((m) => !deleted.includes(m.id)).map((m) => m.id)}
-                    canManage={canAuthor} onManage={() => { setChooserOpen(false); setManageOpen(true); }} />
-                )}
               </div>
             </section>
           )}
+          {isDimensions && (
+            <ViewSwitcher open={chooserOpen} onClose={() => setChooserOpen(false)}
+              structure={structure} structureTokens={domain ? BOTTOM_TABS[domain] ?? [] : []}
+              onStructure={(st) => { setStructure(st); setPeek(null); }}
+              views={views} activeId={view.id} onActivate={(id) => { setViewId(id); setPeek(null); }}
+              memberIds={MEMBERS.filter((m) => !deleted.includes(m.id)).map((m) => m.id)}
+              canManage={canAuthor} onManage={() => { setChooserOpen(false); setManageOpen(true); }} />
+          )}
+          </div>
 
           {showProperties && (
             <PropertiesPane open={rightOpen} onOpen={setRightOpen} domain={domain} structure={structure}

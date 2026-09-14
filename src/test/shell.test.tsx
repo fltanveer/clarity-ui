@@ -274,4 +274,15 @@ describe("AppShell", () => {
     act(() => { window.innerWidth = 1440; window.dispatchEvent(new Event("resize")); });
     expect(screen.getByRole("complementary", { name: "Members" })).toBeInTheDocument();
   });
+
+  it("the model + view panel opens while a member's configuration is showing", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "MODEL" }));
+    await user.click(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: "Member B" }));
+    expect(screen.getByRole("region", { name: "Member B configuration" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Change model or view" }));
+    expect(screen.getByRole("dialog", { name: "Choose model and view" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Member B configuration" })).toBeInTheDocument();
+  });
 });

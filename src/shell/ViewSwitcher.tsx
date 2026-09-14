@@ -27,9 +27,12 @@ export interface ViewSwitcherProps {
 }
 
 /*
- * Model + view picker, docked over the leading edge of the work area — beside
- * the members pane that opened it, from below the action toolbar to the
- * structure bar. The parent positions it (relative container).
+ * Model + view picker, docked over the leading edge of the centre — beside the
+ * members pane that opened it, from below the centre's first toolbar row (the
+ * action toolbar, or member configuration's header) to the structure bar. The
+ * parent positions it (relative container). It rises from the members pane, so
+ * it casts shadow only to its trailing side; clip-path keeps the top, bottom
+ * and leading edges clean against the toolbar and the members pane.
  * Choosing is one click and closes the overlay. Arranging and editing views is
  * deliberately not here: "Manage views" opens the full manager in a modal.
  */
@@ -78,7 +81,7 @@ export function ViewSwitcher({
 
   return (
     <div ref={panelRef} role="dialog" aria-label="Choose model and view"
-      className="absolute inset-y-0 start-0 z-30 flex w-80 max-w-full flex-col overflow-hidden border-e border-line-strong bg-surface text-ui text-fg-primary shadow-popover">
+      className="absolute start-0 top-row-toolbar bottom-0 z-30 flex w-80 max-w-full flex-col overflow-hidden border-x border-line-strong bg-surface text-ui text-fg-primary shadow-[16px_0_32px_-12px_oklch(0_0_0/0.18)] [clip-path:inset(0_-3rem_0_0)]">
       <div className="flex shrink-0 flex-col gap-2 border-b border-line-subtle p-3">
         <div>
           <label htmlFor="view-switcher-model" className="mb-1 block text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">Model</label>
