@@ -4,7 +4,7 @@ import {
   BOTTOM_TABS, CLOSED_DOMAINS, NON_DELETABLE_STRUCTURES, isAddToken, isPipe, plusLabel, type WorkspaceId,
 } from "../lib/nav";
 import { MenuDivider, MenuItem, Popover } from "./Popover";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { DeleteStructureDialog, EditStructureDialog } from "./StructureDialogs";
 import { Pipe } from "./controls";
 import { cx } from "../lib/cx";
 
@@ -24,7 +24,15 @@ export interface StructureBarProps {
  */
 export function StructureBar({ workspace, domain, structure, onStructure, canAuthor, l100 }: StructureBarProps) {
   const raw = domain ? BOTTOM_TABS[domain] ?? [] : [];
-  const items = raw.filter((t) => !isAddToken(t));
+  /* Renames and deletions made here, keyed Domain:Structure (the structure id stays the original name). */
+  const [labels, setLabels] = useState<Record<string, string>>({});
+  const [descriptions, setDescriptions] = useState<Record<string, string>>({});
+  const [removed, setRemoved] = useState<string[]>([]);
+  const key = (t: string) => `${domain}:${t}`;
+  const labelOf = (t: string) => labels[key(t)] ?? t;
+  const items = raw.filter((t) => !isAddToken(t) && (isPipe(t) || !removed.includes(key(t))))
+    /* Drop pipes left dangling at either end or doubled up by a deletion. */
+    .filter((t, i, a) => !isPipe(t) || (i > 0 && i < a.length - 1 && !isPipe(a[i - 1])));
   const tabs = items.filter((t) => !isPipe(t));
   const hasAdd = raw.some(isAddToken);
   const addLabel = plusLabel(workspace, domain);
@@ -32,6 +40,8 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
   const [allOpen, setAllOpen] = useState(false);
   const allRef = useRef<HTMLButtonElement>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const closed = domain ? CLOSED_DOMAINS.has(domain) : false;
 
   const scroll = (dir: number) => stripRef.current?.scrollBy({ left: dir * 180, behavior: "smooth" });
   const onKeyDown = (e: KeyboardEvent) => {
@@ -65,7 +75,7 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
         </button>
         <Popover anchorRef={allRef} open={allOpen} onClose={() => setAllOpen(false)} placement="top-start" label="All structures" className="min-w-48 py-1">
           {tabs.length ? tabs.map((t) => (
-            <MenuItem key={t} checked={t === structure} onSelect={() => { onStructure(t); setAllOpen(false); }}>{t}</MenuItem>
+            <MenuItem key={t} checked={t === structure} onSelect={() => { onStructure(t); setAllOpen(false); }}>{labelOf(t)}</MenuItem>
           )) : <p className="px-3 py-1.5 text-caption text-fg-tertiary">No structures defined</p>}
         </Popover>
       </div>
@@ -76,9 +86,9 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
           <span className="ps-tab-inset text-caption text-fg-tertiary">No structures defined for this domain</span>
         ) : items.map((t, i) => isPipe(t)
           ? <Pipe key={`p${i}`} className="mx-1" />
-          : <StructureTab key={t} name={t} on={t === structure} onSelect={() => onStructure(t)}
-              system={NON_DELETABLE_STRUCTURES.has(`${domain}:${t}`)} canAuthor={canAuthor}
-              onDelete={() => setConfirm(t)} />)}
+          : <StructureTab key={t} name={t} label={labelOf(t)} on={t === structure} onSelect={() => onStructure(t)}
+              system={NON_DELETABLE_STRUCTURES.has(key(t))} canAuthor={canAuthor}
+              onEdit={() => setEditing(t)} onDelete={() => setConfirm(t)} />)}
       </div>
 
       <div className="flex shrink-0 gap-0.5">
@@ -92,23 +102,34 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
         </button>
       </div>
 
-      {confirm && (
-        <ConfirmDialog
-          title={`Delete ${confirm}?`}
-          confirmLabel="Delete structure and repost"
+      {editing && domain && (
+        <EditStructureDialog domain={domain} name={labelOf(editing)} system={NON_DELETABLE_STRUCTURES.has(key(editing))}
+          closed={closed} description={descriptions[key(editing)] ?? ""}
+          siblings={tabs.filter((t) => t !== editing).map(labelOf)}
+          onCancel={() => setEditing(null)}
+          onSave={({ name: next, description }) => {
+            setLabels((l) => ({ ...l, [key(editing)]: next }));
+            setDescriptions((d) => ({ ...d, [key(editing)]: description }));
+            setEditing(null);
+          }} />
+      )}
+      {confirm && domain && (
+        <DeleteStructureDialog domain={domain} name={labelOf(confirm)}
           onCancel={() => setConfirm(null)}
-          onConfirm={() => setConfirm(null)}
-        >
-          This removes the structure and reposts <strong>1,284 derived facts</strong> across 3 dependent structures. It cannot be undone.
-        </ConfirmDialog>
+          onConfirm={() => {
+            const left = tabs.filter((t) => t !== confirm);
+            setRemoved((r) => [...r, key(confirm)]);
+            if (confirm === structure && left[0]) onStructure(left[0]);
+            setConfirm(null);
+          }} />
       )}
     </div>
   );
 }
 
-function StructureTab({ name, on, onSelect, system, canAuthor, onDelete }: {
-  name: string; on: boolean; onSelect: () => void; system: boolean;
-  canAuthor: boolean; onDelete: () => void;
+function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, onDelete }: {
+  name: string; label: string; on: boolean; onSelect: () => void; system: boolean;
+  canAuthor: boolean; onEdit: () => void; onDelete: () => void;
 }) {
   const [menu, setMenu] = useState(false);
   const caretRef = useRef<HTMLButtonElement>(null);
@@ -128,21 +149,21 @@ function StructureTab({ name, on, onSelect, system, canAuthor, onDelete }: {
           on ? cx("border-s border-s-line-subtle font-semibold text-fg-primary", !showCaret && "border-e border-e-line-subtle") : "text-fg-tertiary hover:text-fg-primary",
         )}>
         {system && <Lock size={10} aria-label="System-defined" />}
-        {name}
+        {label}
       </button>
       {showCaret && (
-        <button ref={caretRef} type="button" aria-label={`${name} options`} aria-haspopup="menu" aria-expanded={menu}
+        <button ref={caretRef} type="button" aria-label={`${label} options`} aria-haspopup="menu" aria-expanded={menu}
           onClick={(e) => { e.stopPropagation(); setMenu((m) => !m); }}
           className={cx("-mt-px grid h-7.5 w-5 cursor-pointer place-items-center rounded-tr-chip border-t-2 text-fg-tertiary",
             frame, on ? "border-e border-e-line-subtle" : "caret-reveal")}>
           <ChevronDown size={11} aria-hidden />
         </button>
       )}
-      <Popover anchorRef={caretRef} open={menu} onClose={() => setMenu(false)} placement="top-start" label={`${name} options`} className="min-w-37 py-1">
-        <MenuItem onSelect={() => setMenu(false)}><Pencil size={13} aria-hidden /> Edit</MenuItem>
+      <Popover anchorRef={caretRef} open={menu} onClose={() => setMenu(false)} placement="top-start" label={`${label} options`} className="min-w-37 py-1">
+        <MenuItem onSelect={() => { setMenu(false); onEdit(); }}><Pencil size={13} aria-hidden /> Edit…</MenuItem>
         <MenuDivider />
         <MenuItem tone="danger" disabled={!canDelete} onSelect={() => { setMenu(false); onDelete(); }}>
-          <Trash2 size={13} aria-hidden /> Delete{!canDelete && <span className="ms-auto ps-3 text-caption">required</span>}
+          <Trash2 size={13} aria-hidden /> Delete…{!canDelete && <span className="ms-auto ps-3 text-caption">required</span>}
         </MenuItem>
       </Popover>
     </span>

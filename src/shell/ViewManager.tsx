@@ -78,48 +78,68 @@ export interface ViewManagerProps {
   onClose: () => void;
 }
 
-type Drop = { id: string; where: "before" | "after" } | { folder: string };
+type Drop = { id: string; where: "before" | "after" } | { folder: string } | { folderTarget: string; where: "before" | "after" };
 
 export function ViewManager({ structure, structureTokens, onStructure, members, views, onViews, activeId, onActivate, canAuthor, onClose }: ViewManagerProps) {
   const [selectedId, setSelectedId] = useState(activeId);
   const selected = views.find((v) => v.id === selectedId) ?? views[0];
   const [draft, setDraft] = useState<MemberView>(selected);
   const [section, setSection] = useState<SectionId>("scope");
-  const [confirm, setConfirm] = useState<{ kind: "discard"; run: () => void } | { kind: "delete" } | null>(null);
+  const [confirm, setConfirm] = useState<{ kind: "discard"; run: (base: MemberView[]) => void } | { kind: "delete" } | null>(null);
+  /* Views created here (New view, Duplicate) stay drafts until their first Save. */
+  const [newIds, setNewIds] = useState<string[]>([]);
+  const returnTo = useRef<string | null>(null);
 
   const dirtyIds = [
     ...(IDENTITY_KEYS.some((k) => !same(draft[k], selected[k])) ? ["identity"] : []),
     ...(SCOPE_KEYS.some((k) => !same(draft[k], selected[k])) ? ["scope"] : []),
   ];
-  const dirty = dirtyIds.length > 0;
+  const isNew = newIds.includes(selected.id);
+  const dirty = dirtyIds.length > 0 || isNew;
   const isActive = selected.id === activeId;
 
-  /* Every exit from an unsaved draft asks first. */
-  const guard = (run: () => void) => (dirty ? setConfirm({ kind: "discard", run }) : run());
+  /* Every exit from an unsaved draft asks first. `base` is the view list after any discard. */
+  const guard = (run: (base: MemberView[]) => void) => (dirty ? setConfirm({ kind: "discard", run }) : run(views));
   const select = (id: string) => {
     if (id === selected.id) return;
-    guard(() => { setSelectedId(id); setDraft(views.find((v) => v.id === id)!); });
+    guard((base) => { setSelectedId(id); setDraft(base.find((v) => v.id === id)!); });
   };
+  /* Drop an unsaved new view and return to where the author was. */
+  const withoutNew = () => views.filter((v) => v.id !== selected.id);
+  const discardNew = () => {
+    const rest = withoutNew();
+    onViews(rest);
+    setNewIds((n) => n.filter((x) => x !== selected.id));
+    const back = rest.find((v) => v.id === returnTo.current) ?? rest[0];
+    setSelectedId(back.id); setDraft(back);
+  };
+  const cancel = () => (isNew ? discardNew() : setDraft(selected));
 
   const save = () => {
     const next = { ...draft, ids: resolveView(draft, members), updated: "Just now" };
     onViews(views.map((v) => (v.id === next.id ? next : v)));
     setDraft(next);
+    setNewIds((n) => n.filter((x) => x !== next.id));
   };
-  const addView = () => guard(() => {
+  const saveAndApply = () => { save(); onActivate(draft.id); onClose(); };
+  const addView = () => guard((base) => {
     const id = `view-${Date.now()}`;
     const v: MemberView = {
       id, name: "Untitled view", on: structure ?? "Structure", folder: null, kind: "rule", match: "all", rules: [],
       ids: members.map((m) => m.id), description: "", owner: "J. Davidson", updated: "Just now", uuid: crypto.randomUUID(),
     };
-    onViews([...views, v]);
+    returnTo.current = selected.id;
+    onViews([...base, v]);
+    setNewIds((n) => [...n, id]);
     setSelectedId(id); setDraft(v); setSection("identity");
   });
-  const duplicate = () => guard(() => {
+  const duplicate = () => guard((base) => {
     const id = `view-${Date.now()}`;
     const v: MemberView = { ...selected, id, name: `${selected.name} copy`, system: false, owner: "J. Davidson", updated: "Just now", uuid: crypto.randomUUID() };
-    const i = views.indexOf(selected);
-    onViews([...views.slice(0, i + 1), v, ...views.slice(i + 1)]);
+    const i = base.findIndex((x) => x.id === selected.id);
+    returnTo.current = selected.id;
+    onViews([...base.slice(0, i + 1), v, ...base.slice(i + 1)]);
+    setNewIds((n) => [...n, id]);
     setSelectedId(id); setDraft(v); setSection("identity");
   });
 
@@ -142,7 +162,7 @@ export function ViewManager({ structure, structureTokens, onStructure, members, 
         <h2 className="shrink-0 text-heading font-semibold">Manage views</h2>
         <span className="flex min-w-0 items-center gap-1.5 rounded-chip bg-shell px-2 py-0.5 text-ui text-fg-secondary">
           <Boxes size={13} aria-hidden className="shrink-0 text-mode-ink" />
-          <span className="truncate"><span className="font-semibold text-fg-primary">{structure ?? "Structure"}</span> model</span>
+          <span className="truncate">Model / Structure: <span className="font-semibold text-fg-primary">{structure ?? "—"}</span></span>
         </span>
         <span className="min-w-3 flex-1" />
         <ChromeButton variant="icon" className="size-8" onClick={() => guard(onClose)} aria-label="Close view management" title="Close (Esc)">
@@ -160,16 +180,18 @@ export function ViewManager({ structure, structureTokens, onStructure, members, 
         <div className="flex min-w-0 flex-1 flex-col">
           {/*
             View bar: the selected view and every action on it, ordered by state.
-              clean   → [Duplicate] [Delete] | [Apply view]   (Apply hidden when already active)
-              dirty   → Unsaved changes …… [Cancel] [Save]    (Apply waits for Save)
-              DATA    → Read-only …… [Apply view]
+              saved view  → [Duplicate] [Delete] | [Cancel] [Save] [Apply view]
+                            Cancel / Save enable once something changes; Apply becomes Save & apply
+              new view    → Not saved yet …… [Cancel] [Save] [Save & apply]   (Cancel removes it)
+              active view → Save is the primary action; there is nothing to apply
+              DATA        → Read-only …… [Apply view]
           */}
           <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line-strong bg-surface ps-4 pe-3">
             <h3 title={selected.name} className="min-w-0 truncate text-title font-semibold">{selected.name}</h3>
             {isActive && <ActiveBadge />}
             {dirty && (
               <span role="status" className="flex shrink-0 items-center gap-1 text-caption font-semibold text-warning-text">
-                <CircleAlert size={12} aria-hidden /> Unsaved changes
+                <CircleAlert size={12} aria-hidden /> {isNew ? "Not saved yet" : "Unsaved changes"}
               </span>
             )}
             {!canAuthor && (
@@ -178,31 +200,37 @@ export function ViewManager({ structure, structureTokens, onStructure, members, 
               </span>
             )}
             <span className="min-w-3 flex-1" />
-            {canAuthor && dirty && (
+            {canAuthor && (
               <>
-                <ChromeButton onClick={() => setDraft(selected)}>Cancel</ChromeButton>
-                <ChromeButton variant="primary" className="h-button" onClick={save}>Save</ChromeButton>
+                {!isNew && (
+                  <>
+                    <ChromeButton className="h-control-h px-3" disabled={dirty} onClick={duplicate}
+                      title={dirty ? "Save or cancel your changes first" : undefined}>
+                      <Copy size={13} aria-hidden /> Duplicate
+                    </ChromeButton>
+                    <ChromeButton variant="danger-ghost" className="h-control-h w-control-h shrink-0 px-0" disabled={selected.system}
+                      onClick={() => setConfirm({ kind: "delete" })} aria-label="Delete view"
+                      title={selected.system ? "System view — cannot be deleted" : "Delete view"}>
+                      <Trash2 size={14} aria-hidden className="size-3.5 shrink-0" />
+                    </ChromeButton>
+                    <Pipe className="mx-1" />
+                  </>
+                )}
+                <ChromeButton className="h-control-h px-3" disabled={!dirty} onClick={cancel}>Cancel</ChromeButton>
+                <ChromeButton variant={isActive ? "primary" : "ghost"} className={cx(!isActive && "h-control-h px-3")}
+                  disabled={!dirty} onClick={save}>Save</ChromeButton>
               </>
             )}
-            {canAuthor && !dirty && (
-              <>
-                <ChromeButton onClick={duplicate}><Copy size={12} aria-hidden /> Duplicate</ChromeButton>
-                <ChromeButton variant="danger-ghost" className="px-2" disabled={selected.system}
-                  onClick={() => setConfirm({ kind: "delete" })} aria-label="Delete view"
-                  title={selected.system ? "System view — cannot be deleted" : "Delete view"}>
-                  <Trash2 size={12} aria-hidden />
-                </ChromeButton>
-              </>
-            )}
-            {!dirty && !isActive && (
-              <>
-                {canAuthor && <Pipe className="mx-1" />}
-                <ChromeButton variant="primary" className="h-button" title="Show this view in the members pane"
-                  onClick={() => { onActivate(selected.id); onClose(); }}>
-                  <Check size={12} aria-hidden /> Apply view
-                </ChromeButton>
-              </>
-            )}
+            {!isActive && (dirty && canAuthor ? (
+              <ChromeButton variant="primary" onClick={saveAndApply} title="Save, then show this view in the members pane">
+                <Check size={12} aria-hidden /> Save &amp; apply
+              </ChromeButton>
+            ) : (
+              <ChromeButton variant="primary" title="Show this view in the members pane"
+                onClick={() => { onActivate(selected.id); onClose(); }}>
+                <Check size={12} aria-hidden /> Apply view
+              </ChromeButton>
+            ))}
           </div>
 
           <div className="flex min-h-0 flex-1">
@@ -231,8 +259,15 @@ export function ViewManager({ structure, structureTokens, onStructure, members, 
       {confirm?.kind === "discard" && (
         <ConfirmDialog title="Discard unsaved changes?" confirmLabel="Discard changes"
           onCancel={() => setConfirm(null)}
-          onConfirm={() => { const run = confirm.run; setDraft(selected); setConfirm(null); run(); }}>
-          Changes to “{draft.name}” have not been saved and will be lost.
+          onConfirm={() => {
+            const run = confirm.run;
+            let base = views;
+            if (isNew) { base = withoutNew(); onViews(base); setNewIds((n) => n.filter((x) => x !== selected.id)); }
+            else setDraft(selected);
+            setConfirm(null);
+            run(base);
+          }}>
+          {isNew ? <>“{draft.name}” has not been saved yet and will be removed.</> : <>Changes to “{draft.name}” have not been saved and will be lost.</>}
         </ConfirmDialog>
       )}
       {confirm?.kind === "delete" && (
@@ -270,8 +305,12 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
   const [emptyFolders, setEmptyFolders] = useState<string[]>([]);
   const [newFolder, setNewFolder] = useState<string | null>(null);
   const folderCancelled = useRef(false);
-  const [undo, setUndo] = useState<MemberView[] | null>(null);
+  const [undo, setUndo] = useState<{ views: MemberView[]; folderOrder: string[] | null } | null>(null);
+  /* Explicit folder order once someone arranges folders; otherwise first-appearance order. */
+  const [folderOrder, setFolderOrder] = useState<string[] | null>(null);
   const dragId = useRef<string | null>(null);
+  const dragKind = useRef<"view" | "folder" | null>(null);
+  const [focusFolder, setFocusFolder] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [drop, setDrop] = useState<Drop | null>(null);
   const [focusGrip, setFocusGrip] = useState<string | null>(null);
@@ -280,7 +319,10 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
 
   const query = q.trim().toLowerCase();
   const memberIds = new Set(members.map((m) => m.id));
-  const folders = [...new Set([...views.map((v) => v.folder).filter(Boolean) as string[], ...emptyFolders])];
+  const present = [...new Set([...views.map((v) => v.folder).filter(Boolean) as string[], ...emptyFolders])];
+  const folders = folderOrder
+    ? [...folderOrder.filter((f) => present.includes(f)), ...present.filter((f) => !folderOrder.includes(f))]
+    : present;
   const groups = [
     { folder: null as string | null, items: views.filter((v) => !v.folder) },
     ...folders.map((f) => ({ folder: f as string | null, items: views.filter((v) => v.folder === f) })),
@@ -294,9 +336,14 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
     rootRef.current?.querySelector<HTMLElement>(`[data-grip="${focusGrip}"]`)?.focus();
     setFocusGrip(null);
   }, [views, focusGrip]);
+  useEffect(() => {
+    if (focusFolder === null) return;
+    rootRef.current?.querySelector<HTMLElement>(`[data-folder-grip="${CSS.escape(focusFolder)}"]`)?.focus();
+    setFocusFolder(null);
+  }, [folderOrder, focusFolder]);
 
   const commit = (next: MemberView[], item: MemberView, folder: string | null) => {
-    setUndo(views);
+    setUndo({ views, folderOrder });
     onViews(next);
     onMoved(item.id, folder);
     const peers = next.filter((v) => v.folder === folder);
@@ -323,7 +370,27 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
     setEmptyFolders((f) => f.filter((x) => x !== folder));
     commit(rest, moved, folder);
   };
-  const endDrag = () => { dragId.current = null; setDragging(null); setDrop(null); };
+  /* Move folder `name` before/after `target`. Views are re-sequenced to match, so order persists. */
+  const moveFolder = (name: string, target: string, where: "before" | "after") => {
+    if (name === target) return;
+    const order = folders.filter((f) => f !== name);
+    order.splice(order.indexOf(target) + (where === "after" ? 1 : 0), 0, name);
+    setUndo({ views, folderOrder });
+    setFolderOrder(order);
+    onViews([...views.filter((v) => !v.folder), ...order.flatMap((f) => views.filter((v) => v.folder === f))]);
+    setAnnounce(`Folder ${name} moved to position ${order.indexOf(name) + 1} of ${order.length}`);
+  };
+  const onFolderGripKey = (e: KeyboardEvent, name: string) => {
+    const d = e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    const i = folders.indexOf(name);
+    const other = folders[i + d];
+    if (!other) return;
+    moveFolder(name, other, d < 0 ? "before" : "after");
+    setFocusFolder(name);
+  };
+  const endDrag = () => { dragId.current = null; dragKind.current = null; setDragging(null); setDrop(null); };
 
   const onGripKey = (e: KeyboardEvent, v: MemberView) => {
     const i = flat.indexOf(v);
@@ -346,20 +413,25 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
   };
 
   const overRow = (e: DragEvent<HTMLLIElement>, v: MemberView) => {
-    if (!dragId.current) return;
+    if (!dragId.current || dragKind.current !== "view") return;
     e.preventDefault();
     const r = e.currentTarget.getBoundingClientRect();
     setDrop({ id: v.id, where: e.clientY < r.top + r.height / 2 ? "before" : "after" });
   };
   const dropNow = () => {
     const id = dragId.current;
-    if (id && drop) ("folder" in drop ? moveToFolder(id, drop.folder) : move(id, drop.id, drop.where));
+    if (id && drop) {
+      if ("folderTarget" in drop) { if (dragKind.current === "folder") moveFolder(id, drop.folderTarget, drop.where); }
+      else if ("folder" in drop) moveToFolder(id, drop.folder);
+      else move(id, drop.id, drop.where);
+    }
     endDrag();
   };
 
   return (
     <div ref={rootRef} className="flex w-72 shrink-0 flex-col border-e border-line-strong bg-shell">
-      <ModelPicker structure={structure} tokens={structureTokens} onStructure={onStructure} />
+      {/* Locked here: switching model changes which views exist, so it happens in the view panel, not mid-edit. */}
+      <ModelPicker structure={structure} tokens={structureTokens} onStructure={onStructure} disabled />
       <div className="flex h-12 shrink-0 items-center gap-1.5 border-b border-line-subtle px-2">
         <label className="flex h-control-form min-w-0 flex-1 items-center gap-1.5 rounded-control border border-line-control bg-surface px-2 hover:border-line-control-hover">
           <Search size={13} aria-hidden className="shrink-0 text-fg-tertiary" />
@@ -399,15 +471,46 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
         {groups.map((g) => {
           const isClosed = g.folder !== null && closed[g.folder] && !query;
           const folderDrop = drop && "folder" in drop && drop.folder === g.folder;
+          const folderLine = drop && "folderTarget" in drop && drop.folderTarget === g.folder && dragging !== `folder:${g.folder}` ? drop.where : null;
+          const folderIndex = g.folder === null ? -1 : folders.indexOf(g.folder);
           return (
-            <div key={g.folder ?? "__unfiled"} role="group" aria-label={g.folder ?? "Unfiled"} className="pb-1">
+            <div key={g.folder ?? "__unfiled"} role="group" aria-label={g.folder ?? "Unfiled"}
+              className={cx("pb-1", dragging === `folder:${g.folder}` && "opacity-40")}>
               {g.folder !== null && (
-                <div onDragOver={(e) => { if (!dragId.current) return; e.preventDefault(); setDrop({ folder: g.folder! }); }}
+                <div draggable={canDrag}
+                  onDragStart={(e) => {
+                    dragId.current = g.folder; dragKind.current = "folder"; setDragging(`folder:${g.folder}`);
+                    e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", g.folder!);
+                  }}
+                  onDragOver={(e) => {
+                    if (!dragId.current) return;
+                    e.preventDefault();
+                    if (dragKind.current === "folder") {
+                      const r = e.currentTarget.getBoundingClientRect();
+                      setDrop({ folderTarget: g.folder!, where: e.clientY < r.top + r.height / 2 ? "before" : "after" });
+                    } else setDrop({ folder: g.folder! });
+                  }}
                   onDrop={(e) => { e.preventDefault(); dropNow(); }}
-                  className={cx("mx-1 flex h-8 items-center rounded-chip", folderDrop && "bg-mode-soft outline-1 -outline-offset-1 outline-mode-solid")}>
+                  onDragEnd={endDrag}
+                  className={cx("relative mx-1 flex h-8 items-center rounded-chip", folderDrop && "bg-mode-soft outline-1 -outline-offset-1 outline-mode-solid")}>
+                  {folderLine && (
+                    <span aria-hidden className={cx("pointer-events-none absolute inset-x-1 z-10 h-0.5 rounded-full bg-mode-solid",
+                      folderLine === "before" ? "-top-1" : "-bottom-1")} />
+                  )}
+                  <span className="flex w-6 shrink-0 justify-center">
+                    {canAuthor && (
+                      <button type="button" data-folder-grip={g.folder} disabled={Boolean(query)}
+                        aria-label={`Reorder folder ${g.folder}, position ${folderIndex + 1} of ${folders.length}`}
+                        aria-roledescription="drag handle" title={query ? "Clear the search to reorder" : "Drag to reorder folder"}
+                        onKeyDown={(e) => onFolderGripKey(e, g.folder!)}
+                        className="grid h-7 w-5 cursor-grab place-items-center rounded-chip text-fg-icon hover:bg-hover hover:text-fg-primary active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40">
+                        <GripVertical size={13} aria-hidden />
+                      </button>
+                    )}
+                  </span>
                   <button type="button" aria-expanded={!isClosed}
                     onClick={() => setClosed((c) => ({ ...c, [g.folder!]: !c[g.folder!] }))}
-                    className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-chip ps-1 pe-2 text-start hover:bg-hover">
+                    className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-chip pe-2 text-start hover:bg-hover">
                     <ChevronDown size={12} aria-hidden className={cx("shrink-0 text-fg-tertiary transition-transform ease-standard", isClosed && "-rotate-90")} />
                     <Folder size={13} aria-hidden className="shrink-0 text-fg-tertiary" />
                     <span className="min-w-0 flex-1 truncate text-caption font-semibold tracking-label text-fg-secondary uppercase">{g.folder}</span>
@@ -425,7 +528,7 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
                     const rowDrop = drop && "id" in drop && drop.id === v.id && dragging !== v.id ? drop.where : null;
                     return (
                       <li key={v.id} draggable={canDrag && !v.system}
-                        onDragStart={(e) => { dragId.current = v.id; setDragging(v.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", v.id); }}
+                        onDragStart={(e) => { dragId.current = v.id; dragKind.current = "view"; setDragging(v.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", v.id); }}
                         onDragOver={(e) => overRow(e, v)} onDrop={(e) => { e.preventDefault(); dropNow(); }} onDragEnd={endDrag}
                         className={cx("relative mx-1", dragging === v.id && "opacity-40")}>
                         {rowDrop && (
@@ -483,8 +586,9 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
             <Check size={12} aria-hidden className="text-success-text" />
             <span className="text-fg-secondary">Arrangement saved</span>
             <ChromeButton className="ms-auto" onClick={() => {
-              onViews(undo);
-              const sel = undo.find((v) => v.id === selectedId);
+              onViews(undo.views);
+              setFolderOrder(undo.folderOrder);
+              const sel = undo.views.find((v) => v.id === selectedId);
               if (sel) onMoved(sel.id, sel.folder);
               setUndo(null);
               setAnnounce("Arrangement restored");
@@ -500,32 +604,40 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
   );
 }
 
-/* Model = the structure whose views are listed. Pipes in the structure bar become dividers. */
-function ModelPicker({ structure, tokens, onStructure }: { structure: string | null; tokens: readonly string[]; onStructure: (s: string) => void }) {
+/* Model / Structure = the structure whose views are listed. Pipes in the structure bar become dividers. */
+function ModelPicker({ structure, tokens, onStructure, disabled }: {
+  structure: string | null; tokens: readonly string[]; onStructure: (s: string) => void; disabled?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
   const items = tokens.filter((t) => !isAddToken(t))
     .filter((t, i, a) => !(isPipe(t) && (i === 0 || i === a.length - 1 || isPipe(a[i - 1]))));
   return (
     <div className="shrink-0 border-b border-line-subtle px-2 pt-2 pb-2">
-      <p className="mb-1 px-0.5 text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">Model</p>
-      <button ref={ref} type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        aria-label={`Model: ${structure ?? "none"}. Change model`}
-        className="flex h-control-form w-full cursor-pointer items-center gap-2 rounded-control border border-line-control bg-surface px-2.5 text-start hover:border-line-control-hover aria-expanded:border-mode-solid">
-        <Boxes size={14} aria-hidden className="shrink-0 text-mode-ink" />
-        <span className="min-w-0 flex-1 truncate text-ui font-semibold text-fg-primary">{structure ?? "Choose a model"}</span>
-        <ChevronDown size={14} aria-hidden className={cx("shrink-0 text-fg-tertiary transition-transform ease-standard", open && "rotate-180")} />
+      <p className="mb-1 px-0.5 text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">Model / Structure</p>
+      <button ref={ref} type="button" aria-haspopup={disabled ? undefined : "menu"} aria-expanded={disabled ? undefined : open}
+        disabled={disabled} onClick={() => setOpen((o) => !o)}
+        aria-label={`Model / Structure: ${structure ?? "none"}${disabled ? "" : ". Change"}`}
+        title={disabled ? "Switch model or structure from the view panel" : undefined}
+        className="flex h-control-form w-full cursor-pointer items-center gap-2 rounded-control border border-line-control bg-surface px-2.5 text-start hover:border-line-control-hover aria-expanded:border-mode-solid disabled:cursor-not-allowed disabled:bg-shell-alt disabled:hover:border-line-control">
+        <Boxes size={14} aria-hidden className={cx("shrink-0", disabled ? "text-fg-tertiary" : "text-mode-ink")} />
+        <span className={cx("min-w-0 flex-1 truncate text-ui font-semibold", disabled ? "text-fg-secondary" : "text-fg-primary")}>{structure ?? "Choose a model"}</span>
+        {disabled
+          ? <Lock size={12} aria-hidden className="shrink-0 text-fg-tertiary" />
+          : <ChevronDown size={14} aria-hidden className={cx("shrink-0 text-fg-tertiary transition-transform ease-standard", open && "rotate-180")} />}
       </button>
-      <Popover anchorRef={ref} open={open} onClose={() => setOpen(false)} label="Models" className="w-68 bg-surface py-1">
-        {items.map((t, i) => isPipe(t)
-          ? <MenuDivider key={`pipe-${i}`} />
-          : (
-            <MenuItem key={t} checked={t === structure} onSelect={() => { setOpen(false); onStructure(t); }}>
-              <span className="flex w-4 shrink-0 justify-center text-mode-ink">{t === structure && <Check size={13} aria-hidden />}</span>
-              <span className={cx("min-w-0 flex-1 truncate", t === structure && "font-semibold")}>{t}</span>
-            </MenuItem>
-          ))}
-      </Popover>
+      {!disabled && (
+        <Popover anchorRef={ref} open={open} onClose={() => setOpen(false)} label="Models" className="w-68 bg-surface py-1">
+          {items.map((t, i) => isPipe(t)
+            ? <MenuDivider key={`pipe-${i}`} />
+            : (
+              <MenuItem key={t} checked={t === structure} onSelect={() => { setOpen(false); onStructure(t); }}>
+                <span className="flex w-4 shrink-0 justify-center text-mode-ink">{t === structure && <Check size={13} aria-hidden />}</span>
+                <span className={cx("min-w-0 flex-1 truncate", t === structure && "font-semibold")}>{t}</span>
+              </MenuItem>
+            ))}
+        </Popover>
+      )}
     </div>
   );
 }

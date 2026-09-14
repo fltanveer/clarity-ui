@@ -81,19 +81,21 @@ describe("AppShell", () => {
     expect(screen.queryByRole("region", { name: "Bulk delete mode" })).not.toBeInTheDocument();
   });
 
-  it("in MODEL a left-pane member click opens configuration on the Attributes page", async () => {
+  it("in MODEL a member click opens configuration; each attribute section is its own menu item", async () => {
     const { user } = setup();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
     await user.click(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: "Member B" }));
     const nav = screen.getByRole("navigation", { name: "Member sections" });
-    expect(within(nav).getByRole("button", { name: "Attributes" })).toHaveAttribute("aria-current", "page");
-    /* Identity and schema sections share one page; initial info is filled in. */
+    /* Opens on Identity, with initial info filled in. */
+    expect(within(nav).getByRole("button", { name: "Identity" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("textbox", { name: "Name | ID" })).toHaveValue("Member B");
+    /* Schema sections and System Details are separate pages under Attributes. */
+    await user.click(within(nav).getByRole("button", { name: "Classification" }));
     expect(screen.getByRole("combobox", { name: "Company Type" })).toBeInTheDocument();
-    /* System Details starts collapsed; Expand all opens it. */
-    expect(screen.getByRole("button", { name: /System Details/ })).toHaveAttribute("aria-expanded", "false");
-    await user.click(screen.getByRole("button", { name: "Expand all" }));
-    expect(screen.getByRole("button", { name: /System Details/ })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByRole("textbox", { name: "Name | ID" })).not.toBeInTheDocument();
+    await user.click(within(nav).getByRole("button", { name: "System Details" }));
+    expect(screen.getByText("Member ID")).toBeInTheDocument();
+    await user.click(within(nav).getByRole("button", { name: "Identity" }));
     /* The list-level toolbars are absent in this state. */
     expect(screen.queryByRole("button", { name: "Actions" })).not.toBeInTheDocument();
 
@@ -164,14 +166,15 @@ describe("AppShell", () => {
     expect(screen.getByRole("region", { name: "Work area" })).toBeInTheDocument();
   });
 
-  it("the overlay switches model; its views and the structure bar follow", async () => {
+  it("the overlay's model / structure dropdown is locked; the structure tabs switch it and the overlay follows", async () => {
     const { user } = setup();
     const sw = await openSwitcher(user);
-    await user.selectOptions(within(sw).getByRole("combobox", { name: "Model" }), "IC Elimination Groups");
-    const after = screen.getByRole("dialog", { name: "Choose model and view" });
-    expect(within(after).getByRole("button", { name: /^Master list/ })).toBeInTheDocument();
+    expect(within(sw).getByRole("combobox", { name: "Model / Structure" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("tab", { name: "IC Elimination Groups" }));
+    const after = await openSwitcher(user);
+    expect(within(after).getByRole("combobox", { name: "Model / Structure" })).toHaveValue("IC Elimination Groups");
     expect(within(after).queryByRole("button", { name: /^Operating companies/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "IC Elimination Groups" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("manage views: select a view, change its rules, save, then apply it", async () => {
@@ -284,5 +287,111 @@ describe("AppShell", () => {
     await user.click(screen.getByRole("button", { name: "Change model or view" }));
     expect(screen.getByRole("dialog", { name: "Choose model and view" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Member B configuration" })).toBeInTheDocument();
+  });
+
+  it("structure Edit opens a modal that renames the tab and rejects duplicate names", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "MODEL" }));
+    await user.click(screen.getByRole("button", { name: "Companies options" }));
+    await user.click(screen.getByRole("menuitem", { name: /Edit/ }));
+    const dialog = screen.getByRole("dialog", { name: "Edit structure" });
+    const name = within(dialog).getByRole("textbox", { name: "Name" });
+    expect(name).toHaveValue("Companies");
+
+    await user.clear(name);
+    await user.type(name, "Custom Rollups");
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(within(dialog).getByText(/already called “Custom Rollups”/)).toBeInTheDocument();
+
+    await user.clear(name);
+    await user.type(name, "Legal entities{Enter}");
+    expect(screen.queryByRole("dialog", { name: "Edit structure" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Legal entities" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("structure Delete stays locked until the exact name is typed", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "MODEL" }));
+    await user.click(screen.getByRole("button", { name: "IC Elimination Groups options" }));
+    await user.click(screen.getByRole("menuitem", { name: /Delete/ }));
+    const dialog = screen.getByRole("alertdialog", { name: "Delete IC Elimination Groups?" });
+    const confirm = within(dialog).getByRole("button", { name: "Delete structure" });
+    expect(confirm).toBeDisabled();
+
+    const input = within(dialog).getByRole("textbox", { name: /To confirm, type/ });
+    await user.type(input, "ic elimination groups");
+    expect(confirm).toBeDisabled();
+    await user.clear(input);
+    await user.type(input, "IC Elimination Groups");
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "IC Elimination Groups" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Companies" })).toBeInTheDocument();
+  });
+
+  it("manage views rearranges folders by keyboard with undo; its model / structure picker is locked", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "MODEL" }));
+    const mgr = await openManager(user);
+    const tree = within(mgr).getByRole("navigation", { name: "Views" });
+    const order = () => within(tree).getAllByRole("group").map((g) => g.getAttribute("aria-label"));
+    expect(order()).toEqual(["Unfiled", "Consolidation", "By region", "Audit"]);
+
+    within(tree).getByRole("button", { name: /Reorder folder Audit/ }).focus();
+    await user.keyboard("{ArrowUp}");
+    expect(order()).toEqual(["Unfiled", "Consolidation", "Audit", "By region"]);
+    expect(within(tree).getByRole("button", { name: /Reorder folder Audit/ })).toHaveFocus();
+
+    await user.click(within(mgr).getByRole("button", { name: "Undo" }));
+    expect(order()).toEqual(["Unfiled", "Consolidation", "By region", "Audit"]);
+
+    expect(within(mgr).getByRole("button", { name: "Model / Structure: Companies" })).toBeDisabled();
+  });
+
+  it("manage views: a new view is a draft — Cancel removes it; Save & apply saves and applies it", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "MODEL" }));
+    let mgr = await openManager(user);
+    const tree = () => within(screen.getByRole("region", { name: "View management" })).getByRole("navigation", { name: "Views" });
+
+    /* Saved view at rest: Cancel / Save present but disabled until something changes. */
+    await user.click(within(tree()).getByRole("button", { name: /^Operating companies/ }));
+    expect(within(mgr).getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(within(mgr).getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    await user.click(within(mgr).getByRole("button", { name: "New view" }));
+    expect(within(tree()).getByRole("button", { name: /^Untitled view/ })).toHaveAttribute("aria-current", "true");
+    expect(within(mgr).getByText("Not saved yet")).toBeInTheDocument();
+    expect(within(mgr).getByRole("button", { name: "Save" })).toBeEnabled();
+    expect(within(mgr).getByRole("button", { name: "Save & apply" })).toBeEnabled();
+    await user.click(within(mgr).getByRole("button", { name: "Cancel" }));
+    expect(within(tree()).queryByRole("button", { name: /^Untitled view/ })).not.toBeInTheDocument();
+    expect(within(tree()).getByRole("button", { name: /^Operating companies/ })).toHaveAttribute("aria-current", "true");
+
+    await user.click(within(mgr).getByRole("button", { name: "New view" }));
+    const name = within(mgr).getByRole("textbox", { name: "Name" });
+    await user.clear(name);
+    await user.type(name, "Board pack");
+    await user.click(within(mgr).getByRole("button", { name: "Save & apply" }));
+    expect(screen.queryByRole("region", { name: "View management" })).not.toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Members in Board pack" })).toBeInTheDocument();
+    mgr = await openManager(user);
+    expect(within(tree()).getByRole("button", { name: /^Board pack/ })).toBeInTheDocument();
+  });
+
+  it("row gear opens the member's configuration in MODEL and its properties in DATA", async () => {
+    const { user } = setup();
+    /* DATA: inspect in the properties pane, no mode change. */
+    await user.click(screen.getByRole("button", { name: "Show properties for Member C" }));
+    const props = screen.getByRole("complementary", { name: "Properties" });
+    expect(within(props).getByRole("heading", { name: "Member C" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "MODEL" }));
+    await user.click(screen.getByRole("button", { name: "Configure Member D" }));
+    expect(screen.getByRole("region", { name: "Member D configuration" })).toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: /^Member D/ })).toHaveAttribute("aria-current", "true");
   });
 });

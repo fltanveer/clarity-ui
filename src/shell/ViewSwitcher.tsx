@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Boxes, Check, ChevronDown, Filter, Folder, ListChecks, Lock, Search, Settings2 } from "lucide-react";
+import { Boxes, Check, Filter, Folder, ListChecks, Lock, Search, Settings2 } from "lucide-react";
 import { VIEW_SEARCH_MIN, type MemberView } from "../lib/members";
 import { isAddToken, isPipe } from "../lib/nav";
 import { controlClass } from "../components/ConfigFields";
@@ -84,14 +84,16 @@ export function ViewSwitcher({
       className="absolute start-0 top-row-toolbar bottom-0 z-30 flex w-80 max-w-full flex-col overflow-hidden border-x border-line-strong bg-surface text-ui text-fg-primary shadow-[16px_0_32px_-12px_oklch(0_0_0/0.18)] [clip-path:inset(0_-3rem_0_0)]">
       <div className="flex shrink-0 flex-col gap-2 border-b border-line-subtle p-3">
         <div>
-          <label htmlFor="view-switcher-model" className="mb-1 block text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">Model</label>
+          <label htmlFor="view-switcher-model" className="mb-1 block text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">Model / Structure</label>
           <div className="relative">
-            <Boxes size={14} aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-mode-ink" />
-            <select id="view-switcher-model" value={structure ?? ""} onChange={(e) => { setQ(""); onStructure(e.target.value); }}
+            {/* Locked: the structure tabs below the grid are where the model / structure changes. */}
+            <Boxes size={14} aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary" />
+            <select id="view-switcher-model" value={structure ?? ""} disabled onChange={(e) => { setQ(""); onStructure(e.target.value); }}
+              title="Switch model or structure from the structure tabs"
               className={cx(controlClass, "h-control-form cursor-pointer appearance-none ps-8 pe-8 font-semibold")}>
               {models.map((m) => <option key={m}>{m}</option>)}
             </select>
-            <ChevronDown size={14} aria-hidden className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary" />
+            <Lock size={12} aria-hidden className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary" />
           </div>
         </div>
         {views.length > VIEW_SEARCH_MIN && (

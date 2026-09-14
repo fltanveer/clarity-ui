@@ -1,14 +1,14 @@
 import { useState, type ReactNode } from "react";
 import {
-  Archive, BarChart3, ChevronDown, ChevronLeft, CircleAlert, GitBranch, Info, Lock,
-  Maximize2, Minimize2, Pencil, RefreshCw, Search, Shield, Sliders, Trash2, Wrench,
+  Archive, BarChart3, ChevronLeft, CircleAlert, GitBranch, IdCard, Lock,
+  Maximize2, Minimize2, Pencil, RefreshCw, Search, Server, Shield, Sliders, Tag, Trash2, Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { DIMENSION_SCHEMA, systemSection, type PropertyFieldDef, type PropertySectionDef } from "../lib/properties";
 import { AssignUnassignSurface } from "../surface/AssignUnassignSurface";
 import { EmptyState } from "../components/EmptyState";
 import { PaneTitle, TitleBand } from "../components/Grid";
-import { ChromeButton } from "./controls";
+import { ChromeButton, Pipe } from "./controls";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { cx } from "../lib/cx";
 import { ConfigIndex, FieldRow, TextInput, controlClass, type IndexGroup } from "../components/ConfigFields";
@@ -23,19 +23,20 @@ import { AttachmentsList, NotesList } from "../components/RecordLists";
  *   │ Attributes              │ page body                                             │
  *   │ RELATIONS …             │                                                       │
  *   │ RECORDS …               │                                                       │
- *   │ [Delete] [Cancel][Save] │                                                       │
+ *   (Delete · Cancel · Save sit top-right in the header band, before the tools)
  *
  * Every page opens with the same title band the assign surface uses, so
- * Attributes, Permissions and Notes read as one family. Attributes is ONE page:
- * identity and every schema section as an accordion (2026-09-14, replacing four
- * separate index entries). Save/Cancel commit the MEMBER, so they stay in the
- * index footer whichever page is open.
+ * attribute pages, Permissions and Notes read as one family. ATTRIBUTES is a
+ * menu group: Identity, one item per schema section of the structure, and
+ * System Details — each its own page (2026-09-14, replacing the one-page
+ * accordion). Save/Cancel commit the MEMBER, so they live in the header band,
+ * visible whichever page is open; the dot marks the attribute page holding edits.
  */
 
 type Item = [id: string, label: string, Icon: LucideIcon, ctx?: string | null];
 
-const INDEX: Array<{ group: string | null; items: Item[] }> = [
-  { group: null, items: [["attributes", "Attributes", Info]] },
+/* Attribute items are built per structure (its schema sections); these follow them. */
+const REST: Array<{ group: string | null; items: Item[] }> = [
   { group: "Relations", items: [
     ["relationships", "Relationships", GitBranch, null],
     ["permissions", "Permissions", Shield, "PERMISSIONS"],
@@ -49,8 +50,7 @@ const INDEX: Array<{ group: string | null; items: Item[] }> = [
     ["attachments", "Attachments", Archive],
   ] },
 ];
-const ITEMS = INDEX.flatMap((g) => g.items);
-const INDEX_GROUPS: IndexGroup[] = INDEX.map((g) => ({ group: g.group, items: g.items.map(([id, label, Icon]) => ({ id, label, Icon })) }));
+const schemaItemId = (sectionId: string) => `attr-${sectionId}`;
 
 interface Identity { name: string; shortName: string; description: string; memo: string }
 
@@ -66,7 +66,7 @@ export interface MemberConfigurationProps {
 
 export function MemberConfiguration({ name, structure, locked, chromeCollapsed, onChromeCollapsed, onExit, onDelete }: MemberConfigurationProps) {
   /* The shell keys this component by member, so a new member re-seeds everything. */
-  const [section, setSection] = useState("attributes");
+  const [section, setSection] = useState("identity");
   const seed: Identity = { name, shortName: "", description: "", memo: "" };
   const [draft, setDraft] = useState<Identity>(seed);
   const [saved, setSaved] = useState<Identity>(seed);
@@ -76,7 +76,17 @@ export function MemberConfiguration({ name, structure, locked, chromeCollapsed, 
   const system = Boolean(schema?.system);
   const cannotDelete = locked || system;
   const dirty = (Object.keys(draft) as (keyof Identity)[]).some((k) => draft[k] !== saved[k]);
-  const current = ITEMS.find(([id]) => id === section)!;
+  const schemaSections = schema?.sections ?? [];
+  const index: Array<{ group: string | null; items: Item[] }> = [
+    { group: "Attributes", items: [
+      ["identity", "Identity", IdCard],
+      ...schemaSections.map((sec): Item => [schemaItemId(sec.id), sec.label, Tag]),
+      ["system", "System Details", Server],
+    ] },
+    ...REST,
+  ];
+  const indexGroups: IndexGroup[] = index.map((g) => ({ group: g.group, items: g.items.map(([id, label, Icon]) => ({ id, label, Icon })) }));
+  const current = index.flatMap((g) => g.items).find(([id]) => id === section) ?? index[0].items[0];
 
   return (
     <section aria-label={`${saved.name} configuration`} className="flex min-h-0 min-w-0 flex-1 flex-col border-s border-line-strong">
@@ -91,6 +101,18 @@ export function MemberConfiguration({ name, structure, locked, chromeCollapsed, 
         {cannotDelete && <Lock size={11} aria-label="System-defined member" className="shrink-0 text-fg-tertiary" />}
         <span className="shrink-0 text-caption whitespace-nowrap text-fg-tertiary">· {current[1]}</span>
         <span className="min-w-3 flex-1" />
+        {/* Member actions lead the top-right group: destructive apart, then Cancel / Save, then tools. */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <ChromeButton variant="danger-ghost" className="h-control-h w-control-h shrink-0 px-0" disabled={cannotDelete}
+            onClick={() => setConfirm(true)} aria-label="Delete member"
+            title={cannotDelete ? "System-defined — cannot be deleted" : "Delete member"}>
+            <Trash2 size={14} aria-hidden className="size-3.5 shrink-0" />
+          </ChromeButton>
+          <Pipe className="mx-1" />
+          <ChromeButton className="h-control-h bg-surface px-3" disabled={!dirty} onClick={() => setDraft(saved)}>Cancel</ChromeButton>
+          <ChromeButton variant="primary" disabled={!dirty} onClick={() => setSaved(draft)}>Save</ChromeButton>
+          <Pipe className="mx-1" />
+        </div>
         <div className="flex shrink-0 items-center gap-1">
           <ChromeButton variant="icon" aria-label="Search this member"><Search size={14} aria-hidden /></ChromeButton>
           <ChromeButton variant="icon" aria-label="Refresh"><RefreshCw size={14} aria-hidden /></ChromeButton>
@@ -103,22 +125,12 @@ export function MemberConfiguration({ name, structure, locked, chromeCollapsed, 
 
       <div className="flex min-h-0 flex-1">
         <div className="flex w-cfg-index shrink-0 flex-col border-e border-line-strong bg-shell-alt">
-          <ConfigIndex groups={INDEX_GROUPS} section={section} onSection={setSection} label="Member sections"
-            controls="member-section" dirty={dirty ? ["attributes"] : []} />
-          <div className="flex h-11 shrink-0 items-center gap-1.5 border-t border-line-subtle bg-shell px-2">
-            <ChromeButton variant="danger-ghost" className="px-2" disabled={cannotDelete}
-              onClick={() => setConfirm(true)} aria-label="Delete member"
-              title={cannotDelete ? "System-defined — cannot be deleted" : "Delete member"}>
-              <Trash2 size={12} aria-hidden />
-            </ChromeButton>
-            <span className="flex-1" />
-            <ChromeButton disabled={!dirty} onClick={() => setDraft(saved)}>Cancel</ChromeButton>
-            <ChromeButton variant="primary" className="h-button" disabled={!dirty} onClick={() => setSaved(draft)}>Save</ChromeButton>
-          </div>
+          <ConfigIndex groups={indexGroups} section={current[0]} onSection={setSection} label="Member sections"
+            controls="member-section" dirty={dirty ? ["identity"] : []} />
         </div>
 
         <div id="member-section" role="region" aria-label={current[1]} className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
-          <SectionContent item={current} name={saved.name} schemaSections={schema?.sections ?? []}
+          <SectionContent item={current} name={saved.name} schemaSections={schemaSections}
             system={system} draft={draft} onDraft={setDraft} dirty={dirty} />
         </div>
       </div>
@@ -142,8 +154,26 @@ function SectionContent({ item, name, schemaSections, system, draft, onDraft, di
   /* Relation pages bring their own title bands (the pattern the other pages copy). */
   if (ctx) return <AssignUnassignSurface key={`${name}-${id}`} ctx={ctx} hideTabs />;
 
-  if (id === "attributes") {
-    return <AttributesPage schemaSections={schemaSections} system={system} draft={draft} onDraft={onDraft} dirty={dirty} />;
+  if (id === "identity") {
+    return (
+      <AttributePage label={label} count={4} dirty={dirty}>
+        <FieldRow label="Name | ID">{(fid) => <TextInput id={fid} value={draft.name} onChange={(v) => onDraft({ ...draft, name: v })} />}</FieldRow>
+        <FieldRow label="Short Name">{(fid) => <TextInput id={fid} value={draft.shortName} onChange={(v) => onDraft({ ...draft, shortName: v })} />}</FieldRow>
+        <FieldRow label="Description">{(fid) => <TextInput id={fid} area value={draft.description} onChange={(v) => onDraft({ ...draft, description: v })} />}</FieldRow>
+        <FieldRow label="Memo">{(fid) => <TextInput id={fid} area value={draft.memo} onChange={(v) => onDraft({ ...draft, memo: v })} />}</FieldRow>
+      </AttributePage>
+    );
+  }
+  if (id === "system" || id.startsWith("attr-")) {
+    const sec = id === "system" ? systemSection(system) : schemaSections.find((x) => schemaItemId(x.id) === id);
+    const fields = sec?.fields ?? [];
+    return (
+      <AttributePage label={label} count={fields.length} dirty={dirty}>
+        {fields.length
+          ? fields.map((f) => <SchemaField key={f.l} field={f} />)
+          : <p className="py-4 text-ui text-fg-tertiary">No settings defined for this structure yet.</p>}
+      </AttributePage>
+    );
   }
 
   return (
@@ -165,79 +195,22 @@ function SectionContent({ item, name, schemaSections, system, draft, onDraft, di
   );
 }
 
-/* ── Attributes: identity + every schema section, one page, accordion ───── */
-function AttributesPage({ schemaSections, system, draft, onDraft, dirty }: {
-  schemaSections: PropertySectionDef[]; system: boolean;
-  draft: Identity; onDraft: (d: Identity) => void; dirty: boolean;
-}) {
-  const sections: Array<{ id: string; label: string; count: number; body: ReactNode; defaultOpen: boolean }> = [
-    { id: "identity", label: "Identity", count: 4, defaultOpen: true, body: (
-      <>
-        <FieldRow label="Name | ID">{(fid) => <TextInput id={fid} value={draft.name} onChange={(v) => onDraft({ ...draft, name: v })} />}</FieldRow>
-        <FieldRow label="Short Name">{(fid) => <TextInput id={fid} value={draft.shortName} onChange={(v) => onDraft({ ...draft, shortName: v })} />}</FieldRow>
-        <FieldRow label="Description">{(fid) => <TextInput id={fid} area value={draft.description} onChange={(v) => onDraft({ ...draft, description: v })} />}</FieldRow>
-        <FieldRow label="Memo">{(fid) => <TextInput id={fid} area value={draft.memo} onChange={(v) => onDraft({ ...draft, memo: v })} />}</FieldRow>
-      </>
-    ) },
-    ...[...schemaSections, systemSection(system)].map((s) => ({
-      id: s.id, label: s.label, count: s.fields.length, defaultOpen: !s.collapsed,
-      body: s.fields.length
-        ? s.fields.map((f) => <SchemaField key={f.l} field={f} />)
-        : <p className="py-3 text-ui text-fg-tertiary italic">Not yet specified for this structure.</p>,
-    })),
-  ];
-
-  const [open, setOpen] = useState<Record<string, boolean>>(() => Object.fromEntries(sections.map((s) => [s.id, s.defaultOpen])));
-  const allOpen = sections.every((s) => open[s.id]);
-
+/* ── One attribute section per page: title band, then its fields in a card ─ */
+function AttributePage({ label, count, dirty, children }: { label: string; count: number; dirty: boolean; children: ReactNode }) {
   return (
     <>
       <TitleBand>
-        <PaneTitle count={`${sections.length} sections`}>Attributes</PaneTitle>
-        <div className="ms-auto flex items-center gap-2">
-          {dirty && (
-            <span role="status" className="flex items-center gap-1 text-caption font-semibold text-warning-text">
-              <CircleAlert size={12} aria-hidden /> Unsaved changes
-            </span>
-          )}
-          <ChromeButton onClick={() => setOpen(Object.fromEntries(sections.map((s) => [s.id, !allOpen])))}>
-            <ChevronDown size={13} aria-hidden className={cx("transition-transform", allOpen && "rotate-180")} />
-            {allOpen ? "Collapse all" : "Expand all"}
-          </ChromeButton>
-        </div>
+        <PaneTitle count={`${count} ${count === 1 ? "field" : "fields"}`}>{label}</PaneTitle>
+        {dirty && (
+          <span role="status" className="ms-auto flex items-center gap-1 text-caption font-semibold text-warning-text">
+            <CircleAlert size={12} aria-hidden /> Unsaved changes
+          </span>
+        )}
       </TitleBand>
-
-      <div className="min-h-0 flex-1 overflow-auto bg-canvas px-4 py-4">
-        <div className="mx-auto flex max-w-3xl flex-col gap-3">
-          {sections.map((s) => (
-            <AccordionSection key={s.id} id={s.id} label={s.label} count={s.count}
-              open={Boolean(open[s.id])} onToggle={() => setOpen((o) => ({ ...o, [s.id]: !o[s.id] }))}>
-              {s.body}
-            </AccordionSection>
-          ))}
-        </div>
+      <div className="min-h-0 flex-1 overflow-auto bg-canvas p-4">
+        <div className="max-w-3xl rounded-panel border border-line-subtle bg-surface px-4">{children}</div>
       </div>
     </>
-  );
-}
-
-function AccordionSection({ id, label, count, open, onToggle, children }: {
-  id: string; label: string; count: number; open: boolean; onToggle: () => void; children: ReactNode;
-}) {
-  const panelId = `attr-panel-${id}`;
-  return (
-    <section className="overflow-hidden rounded-panel border border-line-subtle bg-surface">
-      <h3>
-        <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelId}
-          className={cx("flex h-11 w-full cursor-pointer items-center gap-2.5 px-4 text-start hover:bg-shell",
-            open && "border-b border-line-subtle")}>
-          <ChevronDown size={14} aria-hidden className={cx("shrink-0 text-fg-tertiary transition-transform", !open && "-rotate-90")} />
-          <span className="flex-1 text-ui font-semibold">{label}</span>
-          <span className="text-caption text-fg-tertiary tabular-nums">{count} {count === 1 ? "field" : "fields"}</span>
-        </button>
-      </h3>
-      {open && <div id={panelId} className="px-4">{children}</div>}
-    </section>
   );
 }
 

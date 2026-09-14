@@ -14,6 +14,10 @@ export interface MemberGridProps {
   bulkSel: string[];
   onBulkSel: (ids: string[]) => void;
   onMove: (index: number, delta: number) => void;
+  /** Row gear: MODEL opens member configuration, DATA shows the member in Properties. */
+  onConfigure: (id: string) => void;
+  /** Accessible verb for the gear, e.g. "Configure" or "Show properties for". */
+  configureLabel: string;
   emptyMessage?: string;
 }
 
@@ -35,7 +39,7 @@ const extra: Record<string, (m: Member) => string> = {
  * or moves panes — only a left-pane click does. Without that rule the layout
  * would change every time someone scanned the grid.
  */
-export function MemberGrid({ members, columns, display, member, peek, onPeek, gridMode, bulkSel, onBulkSel, onMove, emptyMessage }: MemberGridProps) {
+export function MemberGrid({ members, columns, display, member, peek, onPeek, gridMode, bulkSel, onBulkSel, onMove, onConfigure, configureLabel, emptyMessage }: MemberGridProps) {
   const deletable = members.filter((m) => !m.locked);
   const allSelected = bulkSel.length > 0 && bulkSel.length === deletable.length;
 
@@ -118,7 +122,8 @@ export function MemberGrid({ members, columns, display, member, peek, onPeek, gr
               ) : <span key={c.id} className="contents">{cell(m, c)}</span>)}
               <span className="grid w-5 shrink-0 place-items-center">
                 {gridMode !== "reorder" && (
-                  <button type="button" aria-label={`Actions for ${m.name}`} onClick={(e) => e.stopPropagation()}
+                  <button type="button" aria-label={`${configureLabel} ${m.name}`} title={`${configureLabel} ${m.name}`}
+                    onClick={(e) => { e.stopPropagation(); onConfigure(m.id); }}
                     className="grid size-5 cursor-pointer place-items-center rounded-chip text-fg-icon hover:bg-hover hover:text-fg-primary">
                     <Settings size={12} aria-hidden />
                   </button>

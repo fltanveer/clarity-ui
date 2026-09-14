@@ -159,7 +159,7 @@
   --spacing-left-rail: 2rem;        /* 32 · members pane collapsed           */
   --spacing-right-pane: 17.5rem;    /* 280 · properties pane                 */
   --spacing-right-rail: 1.75rem;    /* 28 · properties pane collapsed        */
-  --spacing-cfg-index: 13.25rem;    /* 212 · configuration section index     */
+  --spacing-cfg-index: 15rem;       /* 240 · configuration section index — matches the members pane */
   --spacing-centre-min: 37.5rem;    /* 600 · centre pane never narrower      */
   --spacing-edge: 1.125rem;         /* 18 · shell inline edge                */
   --spacing-tab-inset: 0.8125rem;   /* 13 · domain tab padding               */

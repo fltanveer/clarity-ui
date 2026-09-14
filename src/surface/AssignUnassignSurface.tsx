@@ -74,7 +74,7 @@ export function AssignUnassignSurface({
         /* Always side by side — assignment reads as "what is in" beside "what could be";
            stacking breaks that comparison. Narrow windows collapse the members pane
            first (AppShell); below the grid's minimum the shell scrolls sideways. */
-        className="grid min-h-0 min-w-[40rem] flex-1 grid-cols-[minmax(20rem,1.4fr)_minmax(18rem,1fr)] grid-rows-[auto_auto_auto_minmax(0,1fr)]"
+        className="grid min-h-0 min-w-[40rem] flex-1 grid-cols-[minmax(20rem,1fr)_minmax(20rem,1fr)] grid-rows-[auto_auto_auto_minmax(0,1fr)]"
       >
         {!ctx ? (
           <div className="col-span-2">

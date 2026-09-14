@@ -220,6 +220,12 @@ export function AppShell() {
                   <MemberGrid members={baseRows} columns={columns.visible} display={display}
                     member={member} peek={peek} onPeek={setPeek}
                     gridMode={gridMode} bulkSel={bulkSel} onBulkSel={setBulkSel} onMove={moveRow}
+                    /* Configuration is a MODEL surface; in DATA the gear inspects the member in Properties. */
+                    configureLabel={mode === "MODEL" ? "Configure" : "Show properties for"}
+                    onConfigure={(id) => {
+                      if (mode === "MODEL") { setMember(id); setPeek(null); setChooserOpen(false); }
+                      else { setPeek(id); setRightOpen(true); }
+                    }}
                     emptyMessage={gridQuery ? `No members match “${gridQuery}”.` : undefined} />
                 ) : (
                   <WorkspaceStub name={workspaceLabel(workspace)} />
