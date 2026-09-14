@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Layers, Lock, Plus, Search, X } from "lucide-react";
+import { ArrowLeftRight, ChevronLeft, ChevronRight, Layers, Lock, Plus, Search, X } from "lucide-react";
 import { MEMBERS, type Member, type MemberView } from "../lib/members";
 import { cx } from "../lib/cx";
 import { VIEW_SWITCHER_ANCHOR } from "./ViewSwitcher";
@@ -90,43 +90,56 @@ export function LeftPane({
 
       <div className="min-h-0 flex-1 overflow-y-auto py-1">
         {/*
-          View trigger: which model and view the list shows, and the way to change them.
-            idle  — white card on the shell, hairline lift, neutral eyebrow; the mode tint is only on the icon tile
-            hover — a mode-tint wash grows left → right into white (slow, 500ms), chevron nudges toward the panel
-            open  — mode edge + soft mode fill, solid icon tile, chevron turns back
-          Clicking also returns to master-list level.
+          View card — two controls, two jobs:
+            body   → master-list level: shows the data grid for this model + view
+            change → opens the model + view panel beside the pane
+          idle   — white card, hairline lift, neutral eyebrow; mode tint only on the icon tile
+          hover  — body: a mode-tint wash grows left → right into white (500ms)
+          active — the grid is showing this view (no member picked) or its panel is open:
+                   the wash holds, the edge takes the mode colour
+          open   — as active, and the change button turns solid
         */}
         <div className="px-2 pt-0.5 pb-1.5">
-          <button {...{ [VIEW_SWITCHER_ANCHOR]: "" }} type="button" aria-haspopup="dialog" aria-expanded={chooserOpen}
-            aria-current={member === null ? "true" : undefined}
-            aria-label={`${structure ?? "Structure"}: ${view.name}. Choose structure and view`}
-            onClick={() => { onMember(null); onChooser(!chooserOpen); }}
-            className={cx(
-              "group relative isolate flex w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-panel border py-1.5 ps-1.5 pe-2 text-start",
-              "transition-[background-color,border-color,box-shadow] duration-150 ease-standard",
-              chooserOpen
-                ? "border-mode-solid bg-mode-soft"
-                : "border-line-strong bg-surface shadow-lift hover:border-line-control-hover",
-            )}>
-            {/* Gradients do not interpolate, so the wash is a layer that scales in from the leading edge. */}
-            {!chooserOpen && (
-              <span aria-hidden className="pointer-events-none absolute inset-0 -z-10 origin-left scale-x-0 bg-linear-to-r from-mode-soft to-surface opacity-0 transition-[scale,opacity] duration-500 ease-standard group-hover:scale-x-100 group-hover:opacity-100 rtl:origin-right rtl:bg-linear-to-l" />
-            )}
-            <span aria-hidden className={cx(
-              "grid size-8 shrink-0 place-items-center rounded-control transition-[background-color,color] duration-150 ease-standard",
-              chooserOpen ? "bg-mode-solid text-fg-on-accent" : "bg-mode-soft text-mode-ink group-hover:bg-surface",
-            )}>
-              <Layers size={15} strokeWidth={1.75} />
-            </span>
-            <span aria-hidden className="min-w-0 flex-1">
-              <span className="block truncate text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">{structure}</span>
-              <span className={cx("block truncate text-ui font-semibold", chooserOpen ? "text-mode-ink" : "text-fg-primary")}>{view.name}</span>
-            </span>
-            <ChevronRight size={14} aria-hidden className={cx(
-              "shrink-0 transition-[color,translate,rotate] duration-150 ease-standard",
-              chooserOpen ? "rotate-180 text-mode-ink" : "text-fg-tertiary group-hover:translate-x-0.5 group-hover:text-fg-secondary",
-            )} />
-          </button>
+          <div data-active={member === null || chooserOpen ? "" : undefined} className={cx(
+            "group/card relative isolate flex items-center gap-1 overflow-hidden rounded-panel border pe-1.5",
+            "transition-[background-color,border-color,box-shadow] duration-150 ease-standard",
+            member === null || chooserOpen
+              ? "border-mode-solid bg-surface bg-linear-to-r from-mode-soft to-surface shadow-lift rtl:bg-linear-to-l"
+              : "border-line-strong bg-surface shadow-lift has-[button:hover]:border-line-control-hover",
+          )}>
+            <button type="button" aria-current={member === null ? "true" : undefined}
+              aria-label={`${structure ?? "Structure"}: ${view.name}. Show all members`}
+              onClick={() => { onMember(null); onChooser(false); }}
+              className="group/body flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 py-1.5 ps-1.5 text-start">
+              {/* Gradients do not interpolate, so the wash is a layer that scales in from the leading edge. */}
+              {!(member === null || chooserOpen) && (
+                <span aria-hidden className="pointer-events-none absolute inset-0 -z-10 origin-left scale-x-0 bg-linear-to-r from-mode-soft to-surface opacity-0 transition-[scale,opacity] duration-500 ease-standard group-hover/body:scale-x-100 group-hover/body:opacity-100 rtl:origin-right rtl:bg-linear-to-l" />
+              )}
+              <span aria-hidden className={cx(
+                "grid size-8 shrink-0 place-items-center rounded-control transition-[background-color,color] duration-150 ease-standard",
+                member === null || chooserOpen ? "bg-surface text-mode-ink" : "bg-mode-soft text-mode-ink group-hover/body:bg-surface",
+              )}>
+                <Layers size={15} strokeWidth={1.75} />
+              </span>
+              <span aria-hidden className="min-w-0 flex-1">
+                <span className="block truncate text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">{structure}</span>
+                <span className="block truncate text-ui font-semibold text-fg-primary">{view.name}</span>
+              </span>
+            </button>
+            <button {...{ [VIEW_SWITCHER_ANCHOR]: "" }} type="button" aria-haspopup="dialog" aria-expanded={chooserOpen}
+              aria-label="Change model or view" title="Change model or view"
+              onClick={() => onChooser(!chooserOpen)}
+              className={cx(
+                "grid size-8 shrink-0 cursor-pointer place-items-center rounded-control border transition-[background-color,border-color,color] duration-150 ease-standard",
+                /* Prominent at rest (tinted, mode edge) — it is the way to another model or view;
+                   solid on hover and while its panel is open. */
+                chooserOpen
+                  ? "border-mode-solid bg-mode-solid text-fg-on-accent shadow-lift"
+                  : "border-mode-solid bg-mode-soft text-mode-ink hover:bg-mode-solid hover:text-fg-on-accent hover:shadow-lift",
+              )}>
+              <ArrowLeftRight size={15} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
         </div>
 
         <ul aria-label={`Members in ${view.name}`}>

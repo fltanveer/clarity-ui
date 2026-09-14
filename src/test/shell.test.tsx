@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AppShell } from "../shell/AppShell";
 
@@ -142,7 +142,7 @@ describe("AppShell", () => {
   });
 
   const openSwitcher = async (user: ReturnType<typeof setup>["user"]) => {
-    await user.click(screen.getByRole("button", { name: /Choose structure and view/ }));
+    await user.click(screen.getByRole("button", { name: "Change model or view" }));
     return screen.getByRole("dialog", { name: "Choose model and view" });
   };
   const openManager = async (user: ReturnType<typeof setup>["user"]) => {
@@ -251,5 +251,27 @@ describe("AppShell", () => {
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: "Account and plans" })).not.toBeInTheDocument();
     expect(chip).toHaveFocus();
+  });
+
+  it("view card: the change button opens the model + view panel; the card body shows the grid and closes it", async () => {
+    const { user } = setup();
+    const change = screen.getByRole("button", { name: "Change model or view" });
+    await user.click(change);
+    expect(change).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("dialog", { name: "Choose model and view" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Companies: Master list. Show all members" }));
+    expect(screen.queryByRole("dialog", { name: "Choose model and view" })).not.toBeInTheDocument();
+    expect(change).toHaveAttribute("aria-expanded", "false");
+    expect(within(screen.getByRole("region", { name: "Work area" })).getAllByText(/^Member [A-E]$/).length).toBeGreaterThan(0);
+  });
+
+  it("narrowing the window folds the members pane so two-column work keeps its layout", async () => {
+    setup();
+    expect(screen.getByRole("complementary", { name: "Members" })).toBeInTheDocument();
+    act(() => { window.innerWidth = 1180; window.dispatchEvent(new Event("resize")); });
+    expect(screen.getByRole("complementary", { name: "Members (collapsed)" })).toBeInTheDocument();
+    act(() => { window.innerWidth = 1440; window.dispatchEvent(new Event("resize")); });
+    expect(screen.getByRole("complementary", { name: "Members" })).toBeInTheDocument();
   });
 });

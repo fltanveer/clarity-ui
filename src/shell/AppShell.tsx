@@ -17,6 +17,9 @@ import { DEFAULT_COLUMNS, type DisplaySettings, type GridMode, type Mode } from 
 
 /* Below this width the centre would fall under its 600px minimum with the rail open. */
 const NARROW = 1360;
+/* Below this the members pane folds to its 32px strip, so two-column work
+   (assign surfaces, configuration) keeps its side-by-side layout. */
+const MEMBERS_NARROW = 1280;
 
 const tabsOf = (list: string[] | undefined) => (list ?? []).filter((t) => !isPipe(t) && !isAddToken(t));
 
@@ -37,7 +40,7 @@ export function AppShell() {
   const [structure, setStructure] = useState<string | null>(firstStructure(firstDomain("dimensions")));
   const [railExpanded, setRailExpanded] = useState(() => window.innerWidth >= NARROW);
   const [chromeCollapsed, setChromeCollapsed] = useState(false);
-  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [leftCollapsed, setLeftCollapsed] = useState(() => window.innerWidth < MEMBERS_NARROW);
   const [rightOpen, setRightOpen] = useState(true);
 
   const [viewId, setViewId] = useState("master");
@@ -89,9 +92,13 @@ export function AppShell() {
      never override a deliberate collapse on a wide screen. */
   useEffect(() => {
     let narrow = window.innerWidth < NARROW;
+    let membersNarrow = window.innerWidth < MEMBERS_NARROW;
     const onResize = () => {
       const now = window.innerWidth < NARROW;
       if (now !== narrow) { narrow = now; setRailExpanded(!now); }
+      /* Same rule for the members pane: act only when the threshold is crossed. */
+      const membersNow = window.innerWidth < MEMBERS_NARROW;
+      if (membersNow !== membersNarrow) { membersNarrow = membersNow; setLeftCollapsed(membersNow); }
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);

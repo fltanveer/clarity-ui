@@ -20,17 +20,17 @@ export const colWidth = {
 } as const;
 
 /**
- * A frame. Stacked below the container breakpoint; side by side above it, where
- * both frames sit on one parent grid and adopt its rows via subgrid — so title
- * band, filter band and grid head line up across the divider whatever their
- * content (R3). Children must be exactly: TitleBand, FilterBand, GridHead, body.
+ * A frame. Frames always sit side by side on one parent grid and adopt its rows
+ * via subgrid — so title band, filter band and grid head line up across the
+ * divider whatever their content (R3). Children must be exactly: TitleBand,
+ * FilterBand, GridHead, body.
  */
 export function Pane({ className, ...rest }: HTMLAttributes<HTMLElement>) {
   return (
     <section
       className={cx(
         "flex min-h-0 min-w-0 flex-1 flex-col bg-surface",
-        "@4xl:row-span-4 @4xl:grid @4xl:grid-rows-subgrid",
+        "row-span-4 grid grid-rows-subgrid",
         className,
       )}
       {...rest}

@@ -71,13 +71,13 @@ export function AssignUnassignSurface({
       <div
         id={panelId}
         role={hideTabs ? undefined : "tabpanel"}
-        /* Side by side from a 56rem container; below that (e.g. the member-configuration
-           centre) the frames stack: Assigned sizes to its rows up to 45%, Available
-           takes the rest, so every band stays on one line and nothing sits empty. */
-        className="flex min-h-0 flex-1 flex-col @4xl:grid @4xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)] @4xl:grid-rows-[auto_auto_auto_minmax(0,1fr)]"
+        /* Always side by side — assignment reads as "what is in" beside "what could be";
+           stacking breaks that comparison. Narrow windows collapse the members pane
+           first (AppShell); below the grid's minimum the shell scrolls sideways. */
+        className="grid min-h-0 min-w-[40rem] flex-1 grid-cols-[minmax(20rem,1.4fr)_minmax(18rem,1fr)] grid-rows-[auto_auto_auto_minmax(0,1fr)]"
       >
         {!ctx ? (
-          <div className="@4xl:col-span-2">
+          <div className="col-span-2">
           <EmptyState
             title="This context is not registered"
             description={`“${ctxKey}” has no entry in the context registry, so its rules are unknown. Register it before assigning.`}
@@ -95,7 +95,7 @@ export function AssignUnassignSurface({
               leaf={leaf}
               savedViews={savedViews}
               onManageViews={onManageViews}
-              className="max-h-[45%] flex-none! border-b border-line-strong @4xl:max-h-none @4xl:border-e @4xl:border-b-0"
+              className="border-e border-line-strong"
             />
             {target && target.kind === "member" && ctx.scope
               ? <ScopePane key={target.id} target={target} assignment={assignment} onExit={exitScope} />
