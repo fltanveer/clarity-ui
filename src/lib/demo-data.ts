@@ -26,6 +26,23 @@ export const inView = (view: string, m: MasterMember) =>
     : view === "Eliminations only" ? m.region === "Not applicable"
     : true;
 
+/*
+ * The catalogue uses the same views as the members pane (MEMBER_VIEWS), so a
+ * view reads the same everywhere. Its fixture is different, so each view id
+ * gets a rule over these companies; unknown ids (new views) show everything.
+ */
+const CATALOGUE_VIEW_RULES: Record<string, (m: MasterMember) => boolean> = {
+  master: () => true,
+  opco: (m) => m.region !== "Not applicable",
+  elims: (m) => m.region === "Not applicable",
+  acq: (m) => m.name === "Acme EMEA Holdings B.V." || m.name === "Acme APAC Pte. Ltd.",
+  na: (m) => m.region === "North America",
+  emea: (m) => m.region === "EMEA",
+  dormant: (m) => m.name === "Intercompany eliminations",
+  audit: (m) => m.name !== "Intercompany eliminations",
+};
+export const inCatalogueView = (viewId: string, m: MasterMember) => (CATALOGUE_VIEW_RULES[viewId] ?? (() => true))(m);
+
 export interface ScopeMember {
   name: string;
   depth: number;

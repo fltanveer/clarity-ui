@@ -1,19 +1,20 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { Check, ChevronDown, ListFilter, Pencil } from "lucide-react";
-import type { SavedView } from "../lib/demo-data";
-import { cx } from "../lib/cx";
+import { ChevronDown, Info, ListFilter, Settings2 } from "lucide-react";
+import { ViewList, type ViewListItem } from "./ViewList";
 
 export interface ViewMenuProps {
-  /** Saved views for this list. Shown greyed: views apply when viewing, not when assigning. */
-  views: SavedView[];
+  /** Views for this list, rendered like the members view panel. Only the full list applies while assigning. */
+  views: readonly ViewListItem[];
   /** Omit to hide "Manage views…" (host has no view management). */
   onManageViews?: () => void;
 }
 
 /**
- * Views filter consumption, never configuration (CH-014). This menu shows the
- * saved views so users learn they exist, states once why they do not apply
- * here, and offers the single door to view management (CH-016/017).
+ * Views filter consumption, never configuration (CH-014). The menu shows the
+ * same grouped view list as the members view panel so users recognise their
+ * views, keeps every view but the full list unavailable (assignment always
+ * shows every member), says why once, and offers the single door to view
+ * management (CH-016/017).
  *
  * Keyboard (APG menu button): Enter/Space/↓ open and focus the first item,
  * ↑/↓ move, Home/End jump, Escape or Tab close, focus returns to the trigger.
@@ -26,7 +27,11 @@ export function ViewMenu({ views, onManageViews }: ViewMenuProps) {
   const menuId = useId();
   const reasonId = useId();
 
-  const items = () =>
+  /* The structure's full list is the one view assignment uses; add it if the host list lacks it. */
+  const master = views.find((v) => v.system) ?? { id: "master", name: "Master list", system: true };
+  const items = views.some((v) => v.system) ? views : [master, ...views];
+
+  const menuItems = () =>
     Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? []);
 
   const close = (restoreFocus: boolean) => {
@@ -36,7 +41,7 @@ export function ViewMenu({ views, onManageViews }: ViewMenuProps) {
 
   useEffect(() => {
     if (!open) return;
-    items()[0]?.focus();
+    menuItems()[0]?.focus();
     const onPointerDown = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -45,7 +50,7 @@ export function ViewMenu({ views, onManageViews }: ViewMenuProps) {
   }, [open]);
 
   const onMenuKeyDown = (e: KeyboardEvent) => {
-    const list = items();
+    const list = menuItems();
     const i = list.indexOf(document.activeElement as HTMLElement);
     const focus = (n: number) => list[(n + list.length) % list.length]?.focus();
     switch (e.key) {
@@ -57,8 +62,6 @@ export function ViewMenu({ views, onManageViews }: ViewMenuProps) {
       case "Tab": close(false); break;
     }
   };
-
-  const itemClass = "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-ui";
 
   return (
     <div ref={rootRef} className="relative inline-flex">
@@ -76,7 +79,7 @@ export function ViewMenu({ views, onManageViews }: ViewMenuProps) {
       >
         <ListFilter size={14} strokeWidth={1.5} aria-hidden className="text-fg-tertiary" />
         <span className="sr-only">View: </span>
-        <span className="font-semibold">Master list</span>
+        <span className="font-semibold">{master.name}</span>
         <ChevronDown size={14} strokeWidth={1.5} aria-hidden className="text-fg-tertiary" />
       </button>
 
@@ -88,42 +91,31 @@ export function ViewMenu({ views, onManageViews }: ViewMenuProps) {
           aria-label="Views"
           aria-describedby={reasonId}
           onKeyDown={onMenuKeyDown}
-          className="absolute top-full right-0 z-40 mt-1 min-w-menu rounded-lg bg-surface p-1 shadow-popover"
+          className="absolute top-full right-0 z-40 mt-1 flex w-80 flex-col overflow-hidden rounded-panel border border-line-strong bg-surface text-ui shadow-popover"
         >
-          <div role="menuitemradio" aria-checked="true" tabIndex={-1}
-            onClick={() => close(true)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); close(true); }
-            }}
-            className={cx(itemClass, "cursor-pointer font-semibold text-fg-primary hover:bg-hover focus-visible:-outline-offset-2")}>
-            <Check size={14} strokeWidth={2} aria-hidden />
-            Master list
+          {/* Header band matches the members view panel: 44px white band, caption, hairline. */}
+          <div role="none" className="flex h-row-toolbar shrink-0 items-center gap-2 border-b border-line-subtle bg-surface px-3">
+            <span className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">View</span>
+            <span className="ms-auto text-caption text-fg-tertiary tabular-nums">{items.length} {items.length === 1 ? "view" : "views"}</span>
+          </div>
+          <div className="max-h-[min(28rem,60vh)] overflow-y-auto py-1.5">
+            <ViewList items={items} activeId={master.id} itemRole="menuitemradio"
+              isDisabled={(v) => v.id !== master.id} onPick={() => close(true)} />
           </div>
 
-          {views.map((v) => (
-            <div key={v.id} role="menuitemradio" aria-checked="false" aria-disabled="true" tabIndex={-1}
-              className={cx(itemClass, "cursor-not-allowed ps-8 text-fg-disabled focus-visible:-outline-offset-2")}>
-              {v.name}
-            </div>
-          ))}
-
-          <p id={reasonId} role="none" className="px-2 pt-1 pb-2 ps-8 text-caption text-fg-secondary">
+          <p id={reasonId} role="none" className="flex items-start gap-1.5 border-t border-line-subtle bg-shell px-3 py-2 text-caption leading-body text-fg-secondary">
+            <Info size={12} aria-hidden className="mt-0.5 shrink-0 text-fg-tertiary" />
             Views apply when viewing. Assignment always shows every member.
           </p>
 
           {onManageViews && (
-            <>
-              <div role="separator" className="-mx-1 my-1 border-t border-line-subtle" />
-              <div role="menuitem" tabIndex={-1}
+            <div role="none" className="flex border-t border-line-subtle bg-shell px-3 py-2">
+              <button type="button" role="menuitem" tabIndex={-1}
                 onClick={() => { close(true); onManageViews(); }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); close(true); onManageViews(); }
-                }}
-                className={cx(itemClass, "cursor-pointer text-fg-primary hover:bg-hover focus-visible:-outline-offset-2")}>
-                <Pencil size={14} strokeWidth={1.5} aria-hidden />
-                Manage views…
-              </div>
-            </>
+                className="ms-auto inline-flex h-button cursor-pointer items-center gap-1.5 rounded-control border border-line-strong bg-surface px-2.5 text-caption text-fg-secondary hover:bg-hover hover:text-fg-primary focus-visible:-outline-offset-2">
+                <Settings2 size={13} aria-hidden /> Manage views…
+              </button>
+            </div>
           )}
         </div>
       )}

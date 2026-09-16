@@ -81,7 +81,7 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
       </div>
 
       <div ref={stripRef} role="tablist" aria-label="Structures" onKeyDown={onKeyDown}
-        className="no-scrollbar flex h-full min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
+        className="no-scrollbar flex h-full min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto">
         {tabs.length === 0 ? (
           <span className="ps-tab-inset text-caption text-fg-tertiary">No structures defined for this domain</span>
         ) : items.map((t, i) => isPipe(t)
@@ -136,17 +136,18 @@ function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, on
   /* Rename stays open on system structures; delete does not. */
   const showCaret = canAuthor;
   const canDelete = canAuthor && !system;
-  const frame = on ? "border-t-mode-solid bg-grid-container" : "border-t-transparent";
+  /* Full-height square tabs; the active one is the work surface's colour with a mode-coloured bottom rule. */
+  const frame = on ? "border-b-mode-solid bg-grid-container" : "border-b-transparent";
   return (
-    <span className="caret-host relative flex shrink-0 items-stretch"
+    <span className="caret-host relative flex h-full shrink-0 items-stretch"
       onContextMenu={(e) => { if (showCaret) { e.preventDefault(); setMenu(true); } }}>
       <button id={`structure-tab-${name}`} type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1}
         onClick={onSelect}
         className={cx(
-          "-mt-px flex h-7.5 cursor-pointer items-center gap-1.5 rounded-tl-chip border-t-2 ps-2.5 text-caption whitespace-nowrap",
-          showCaret ? "pe-1" : "rounded-tr-chip pe-2.5",
+          "flex h-full cursor-pointer items-center gap-1.5 border-b-2 ps-3 text-caption whitespace-nowrap",
+          showCaret ? "pe-1" : "pe-3",
           frame,
-          on ? cx("border-s border-s-line-subtle font-semibold text-fg-primary", !showCaret && "border-e border-e-line-subtle") : "text-fg-tertiary hover:text-fg-primary",
+          on ? "font-semibold text-fg-primary" : "text-fg-tertiary hover:bg-hover hover:text-fg-primary",
         )}>
         {system && <Lock size={10} aria-label="System-defined" />}
         {label}
@@ -154,8 +155,8 @@ function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, on
       {showCaret && (
         <button ref={caretRef} type="button" aria-label={`${label} options`} aria-haspopup="menu" aria-expanded={menu}
           onClick={(e) => { e.stopPropagation(); setMenu((m) => !m); }}
-          className={cx("-mt-px grid h-7.5 w-5 cursor-pointer place-items-center rounded-tr-chip border-t-2 text-fg-tertiary",
-            frame, on ? "border-e border-e-line-subtle" : "caret-reveal")}>
+          className={cx("grid h-full w-6 cursor-pointer place-items-center border-b-2 text-fg-tertiary hover:text-fg-primary",
+            frame, !on && "caret-reveal")}>
           <ChevronDown size={11} aria-hidden />
         </button>
       )}

@@ -10,7 +10,11 @@ import { cx } from "../lib/cx";
 export interface IndexItem { id: string; label: string; Icon: LucideIcon }
 export interface IndexGroup { group: string | null; items: IndexItem[] }
 
-/* Selection carries three channels: fill, a 2px bar and weight. */
+/*
+ * Selection: a bordered, mode-tinted chip with weight — deliberately
+ * not the members list's mode fill + bar, so "which member" and "which section" never
+ * read as the same kind of selection side by side.
+ */
 export function ConfigIndex({ groups, section, onSection, label, controls, dirty = [] }: {
   groups: IndexGroup[];
   section: string;
@@ -42,14 +46,14 @@ export function ConfigIndex({ groups, section, onSection, label, controls, dirty
             {g.items.map(({ id, label: itemLabel, Icon }) => {
               const on = id === section;
               return (
-                <li key={id}>
+                <li key={id} className="px-2">
                   <button id={`${controls}-item-${id}`} type="button" onClick={() => onSection(id)}
                     aria-current={on ? "page" : undefined} aria-controls={controls}
                     className={cx(
-                      "flex h-grid-row w-full cursor-pointer items-center gap-2 border-s-2 ps-2.5 pe-3 text-start text-ui",
-                      on ? "border-s-mode-solid bg-mode-soft font-semibold text-mode-ink" : "border-s-transparent text-fg-secondary hover:bg-hover hover:text-fg-primary",
+                      "flex h-grid-row w-full cursor-pointer items-center gap-2 rounded-control border px-2 text-start text-ui transition-[background-color,border-color,color] duration-150 ease-standard",
+                      on ? "border-mode-solid/35 bg-mode-soft font-semibold text-mode-ink" : "border-transparent text-fg-secondary hover:bg-hover hover:text-fg-primary",
                     )}>
-                    <Icon size={13} aria-hidden className="shrink-0" />
+                    <Icon size={13} aria-hidden className={cx("shrink-0", on && "text-mode-ink")} />
                     <span className="min-w-0 flex-1 truncate">{itemLabel}</span>
                     {dirty.includes(id) && (
                       <span className="size-1.5 shrink-0 rounded-full bg-warning-icon" aria-label="Unsaved changes" role="img" />

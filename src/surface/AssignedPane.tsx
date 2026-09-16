@@ -3,7 +3,8 @@ import { FolderPlus, X } from "lucide-react";
 import type { ContextDef } from "../lib/registry";
 import { allowsFolders } from "../lib/registry";
 import type { Assignment } from "../lib/assignment";
-import { MASTER, type SavedView } from "../lib/demo-data";
+import { MASTER } from "../lib/demo-data";
+import type { ViewListItem } from "../components/ViewList";
 import { nextSort, sortBy, type SortState } from "../lib/sort";
 import { Button } from "../components/Button";
 import { ConsequenceBadge } from "../components/ConsequenceBadge";
@@ -26,7 +27,7 @@ export interface AssignedPaneProps {
   sort: SortState<SortKey> | null;
   onSort: (sort: SortState<SortKey> | null) => void;
   leaf?: boolean;
-  savedViews: SavedView[];
+  savedViews: readonly ViewListItem[];
   onManageViews?: () => void;
   className?: string;
 }

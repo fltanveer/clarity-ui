@@ -6,6 +6,8 @@ import { VIEW_SWITCHER_ANCHOR } from "./ViewSwitcher";
 
 export interface LeftPaneProps {
   collapsed: boolean;
+  /** Expanded width in px (resizable). */
+  width?: number;
   onCollapsed: (c: boolean) => void;
   canAuthor: boolean;
   member: string | null;
@@ -29,7 +31,7 @@ export interface LeftPaneProps {
  * row carries the bar, because it answers "where am I".
  */
 export function LeftPane({
-  collapsed, onCollapsed, canAuthor, member, onMember, peek, structure, view, chooserOpen, onChooser,
+  collapsed, width, onCollapsed, canAuthor, member, onMember, peek, structure, view, chooserOpen, onChooser,
   hidden = [],
 }: LeftPaneProps) {
   const [q, setQ] = useState("");
@@ -58,7 +60,7 @@ export function LeftPane({
   }
 
   return (
-    <aside aria-label="Members" className="flex w-left-pane shrink-0 flex-col overflow-hidden bg-shell">
+    <aside aria-label="Members" style={width ? { width } : undefined} className="flex w-left-pane shrink-0 flex-col overflow-hidden bg-shell">
       <div className="flex h-row-toolbar shrink-0 items-center gap-1.5 border-b border-line-subtle bg-shell-alt ps-3 pe-1.5">
         <h2 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Members</h2>
         <button type="button" onClick={() => onCollapsed(true)} aria-label="Collapse members"

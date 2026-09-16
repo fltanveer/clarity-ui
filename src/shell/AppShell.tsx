@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MEMBERS, defaultViews, memberById, type MemberView } from "../lib/members";
 import { BOTTOM_TABS, TOP_TABS, firstDomain, firstStructure, isAddToken, isPipe, workspaceLabel, type WorkspaceId } from "../lib/nav";
 import { Rail } from "./Rail";
@@ -13,6 +13,7 @@ import { CollapsedChromeStrip, Footer, WorkspaceStub } from "./Chrome";
 import { MemberConfiguration } from "./MemberConfiguration";
 import { ViewManagerDialog } from "./ViewManager";
 import { ViewSwitcher } from "./ViewSwitcher";
+import { Splitter } from "./Splitter";
 import { DEFAULT_COLUMNS, type DisplaySettings, type GridMode, type Mode } from "./types";
 
 /* Below this width the centre would fall under its 600px minimum with the rail open. */
@@ -20,6 +21,22 @@ const NARROW = 1360;
 /* Below this the members pane folds to its 32px strip, so two-column work
    (assign surfaces, configuration) keeps its side-by-side layout. */
 const MEMBERS_NARROW = 1280;
+
+/* Resizable panes: defaults match the shell tokens (left-pane 240, right-pane 280). */
+const LEFT = { key: "clarity.membersWidth", def: 240, min: 200, max: 420 };
+/* 280 min: the properties tabs (Properties · Notes · Attachments) need it without truncating. */
+const RIGHT = { key: "clarity.propertiesWidth", def: 280, min: 280, max: 520 };
+/* The grid never goes below the centre minimum (centre-min token), and collapsed panes keep their rails. */
+const CENTRE_MIN = 600;
+const LEFT_RAIL = 32;
+const RIGHT_RAIL = 28;
+/* Per-viewer convenience only; storage can be unavailable, so every access is guarded. */
+const readWidth = ({ key, def, min, max }: typeof LEFT) => {
+  try {
+    const v = Number(window.localStorage.getItem(key));
+    return v >= min && v <= max ? v : def;
+  } catch { return def; }
+};
 
 const tabsOf = (list: string[] | undefined) => (list ?? []).filter((t) => !isPipe(t) && !isAddToken(t));
 
@@ -42,6 +59,20 @@ export function AppShell() {
   const [chromeCollapsed, setChromeCollapsed] = useState(false);
   const [leftCollapsed, setLeftCollapsed] = useState(() => window.innerWidth < MEMBERS_NARROW);
   const [rightOpen, setRightOpen] = useState(true);
+  const [leftWidth, setLeftWidth] = useState(() => readWidth(LEFT));
+  const [rightWidth, setRightWidth] = useState(() => readWidth(RIGHT));
+  useEffect(() => { try { window.localStorage.setItem(LEFT.key, String(leftWidth)); } catch { /* storage unavailable */ } }, [leftWidth]);
+  useEffect(() => { try { window.localStorage.setItem(RIGHT.key, String(rightWidth)); } catch { /* storage unavailable */ } }, [rightWidth]);
+  /* Space the panes share with the grid; 0 until measured (and in environments without layout). */
+  const mainRef = useRef<HTMLElement>(null);
+  const [mainWidth, setMainWidth] = useState(0);
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => setMainWidth(Math.round(entry.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const [viewId, setViewId] = useState("master");
   /* Views are per structure; seeded lazily the first time a structure is shown. */
@@ -159,6 +190,13 @@ export function AppShell() {
   /* MODEL master list has no properties pane: it could only restate the name. */
   const showProperties = isDimensions && !memberMode && !(mode === "MODEL" && member === null);
   const memberName = memberById(peek ?? member)?.name ?? null;
+  /* A pane can only grow into space the grid does not need. */
+  const rightTaken = showProperties ? (rightOpen ? rightWidth : RIGHT_RAIL) : 0;
+  const leftTaken = isDimensions ? (leftCollapsed ? LEFT_RAIL : leftWidth) : 0;
+  const leftMax = mainWidth ? Math.max(LEFT.min, Math.min(LEFT.max, mainWidth - CENTRE_MIN - rightTaken)) : LEFT.max;
+  const rightMax = mainWidth ? Math.max(RIGHT.min, Math.min(RIGHT.max, mainWidth - CENTRE_MIN - leftTaken)) : RIGHT.max;
+  const leftShown = Math.min(leftWidth, leftMax);
+  const rightShown = Math.min(rightWidth, rightMax);
   const pathLabel = [workspaceLabel(workspace), domain, structure].filter(Boolean).join(" › ");
 
   return (
@@ -178,13 +216,19 @@ export function AppShell() {
           </>
         )}
 
-        <main className="flex min-h-0 flex-1 overflow-x-auto bg-canvas">
+        {/* Never scrolls sideways: pane widths are clamped to leave the grid CENTRE_MIN, and the grid
+            narrows below that only when the window cannot fit the panes' own minimums. */}
+        <main ref={mainRef} className="flex min-h-0 flex-1 overflow-hidden bg-canvas">
           {isDimensions && (
-            <LeftPane collapsed={leftCollapsed} onCollapsed={setLeftCollapsed} canAuthor={canAuthor}
+            <LeftPane collapsed={leftCollapsed} width={leftShown} onCollapsed={setLeftCollapsed} canAuthor={canAuthor}
               member={member} onMember={(id) => { setMember(id); setPeek(null); }} peek={peek}
               structure={structure} view={view} hidden={deleted}
               chooserOpen={chooserOpen} onChooser={(o) => { setChooserOpen(o); if (o) exitGridMode(); }}
  />
+          )}
+          {isDimensions && !leftCollapsed && (
+            <Splitter label="Resize members pane" side="start" value={leftShown}
+              min={LEFT.min} max={leftMax} defaultValue={LEFT.def} onChange={setLeftWidth} />
           )}
 
           {/* Positioning context for the model + view panel. It docks below the
@@ -198,7 +242,7 @@ export function AppShell() {
               onExit={() => setMember(null)}
               onDelete={() => { setDeleted((d) => [...d, member!]); setMember(null); }} />
           ) : (
-            <section aria-label="Work area" className="flex min-w-centre-min flex-1 flex-col overflow-hidden border-s border-line-subtle bg-grid-container">
+            <section aria-label="Work area" className="flex min-w-0 flex-1 flex-col overflow-hidden border-s border-line-subtle bg-grid-container">
               {gridMode ? (
                 <GridModeBar kind={gridMode} count={bulkSel.length} onCancel={exitGridMode}
                   onSave={() => {
@@ -243,8 +287,12 @@ export function AppShell() {
           )}
           </div>
 
+          {showProperties && rightOpen && (
+            <Splitter label="Resize properties pane" side="end" value={rightShown}
+              min={RIGHT.min} max={rightMax} defaultValue={RIGHT.def} onChange={setRightWidth} />
+          )}
           {showProperties && (
-            <PropertiesPane open={rightOpen} onOpen={setRightOpen} domain={domain} structure={structure}
+            <PropertiesPane open={rightOpen} width={rightShown} onOpen={setRightOpen} domain={domain} structure={structure}
               memberName={memberName} memberLocked={Boolean(memberById(peek ?? member)?.locked)} />
           )}
         </main>

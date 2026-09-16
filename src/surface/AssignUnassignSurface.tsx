@@ -1,7 +1,9 @@
 import { useId, useRef, useState } from "react";
 import { CONTEXT_KEYS, REGISTRY, getContext, type ContextKey } from "../lib/registry";
 import { newMember, useAssignment, type Row } from "../lib/assignment";
-import { MASTER, SAVED_VIEWS, type SavedView } from "../lib/demo-data";
+import { MASTER } from "../lib/demo-data";
+import { MEMBER_VIEWS } from "../lib/members";
+import type { ViewListItem } from "../components/ViewList";
 import type { SortState } from "../lib/sort";
 import { EmptyState } from "../components/EmptyState";
 import { Tabs } from "../components/Tabs";
@@ -20,7 +22,7 @@ export interface AssignUnassignSurfaceProps {
    * no view menu and no Add folder — both would be category errors there.
    */
   leaf?: boolean;
-  savedViews?: SavedView[];
+  savedViews?: readonly ViewListItem[];
   /** View-management seam (CH-016). Passed in, never a module global. */
   onManageViews?: () => void;
   initialRows?: Row[];
@@ -29,7 +31,7 @@ export interface AssignUnassignSurfaceProps {
 const TAB_ITEMS = CONTEXT_KEYS.map((k) => ({ key: k, label: REGISTRY[k].label, group: REGISTRY[k].registry }));
 
 export function AssignUnassignSurface({
-  ctx: hostCtx, hideTabs, leaf, savedViews = SAVED_VIEWS, onManageViews,
+  ctx: hostCtx, hideTabs, leaf, savedViews = MEMBER_VIEWS, onManageViews,
   initialRows,
 }: AssignUnassignSurfaceProps) {
   const panelId = useId();

@@ -10,6 +10,8 @@ import { ATTACHMENTS, NOTES, initials } from "../lib/records";
 
 export interface PropertiesPaneProps {
   open: boolean;
+  /** Expanded width in px (resizable). */
+  width?: number;
   onOpen: (open: boolean) => void;
   domain: string | null;
   structure: string | null;
@@ -26,7 +28,7 @@ interface Identity { name: string; shortName: string; description: string; memo:
  * the STRUCTURE; the identity follows the SELECTION. Both re-seed together, so
  * a stale name never sits above new fields.
  */
-export function PropertiesPane({ open, onOpen, domain, structure, memberName, memberLocked }: PropertiesPaneProps) {
+export function PropertiesPane({ open, width, onOpen, domain, structure, memberName, memberLocked }: PropertiesPaneProps) {
   const master = memberName === null;
   const schema = structure ? DIMENSION_SCHEMA[structure] : undefined;
   const idFields = schema?.identity ?? ["name", "description"];
@@ -64,7 +66,7 @@ export function PropertiesPane({ open, onOpen, domain, structure, memberName, me
   }
 
   return (
-    <aside aria-label="Properties" className="flex w-right-pane shrink-0 flex-col border-s border-line-subtle bg-shell">
+    <aside aria-label="Properties" style={width ? { width } : undefined} className="flex w-right-pane shrink-0 flex-col border-s border-line-subtle bg-shell">
       <div className="flex h-row-toolbar shrink-0 items-center gap-1.5 border-b border-line-subtle bg-mode-soft ps-3 pe-1">
         <span className="shrink-0 text-caption font-semibold tracking-label whitespace-nowrap text-mode-ink uppercase">{domain ?? "Structure"}</span>
         <span aria-hidden className="shrink-0 text-caption text-mode-ink">|</span>
@@ -91,9 +93,9 @@ export function PropertiesPane({ open, onOpen, domain, structure, memberName, me
                 setTab(next);
                 document.getElementById(`prop-tab-${next}`)?.focus();
               }}
-              className={cx("group relative flex flex-1 cursor-pointer items-center justify-center px-1 text-ui whitespace-nowrap",
+              className={cx("group relative flex min-w-0 flex-auto cursor-pointer items-center justify-center px-0.5 text-ui whitespace-nowrap",
                 on ? "font-semibold text-fg-primary" : "text-fg-tertiary hover:text-fg-primary")}>
-              <span className={cx("rounded-chip px-2 py-1 transition-[background-color] ease-standard", !on && "group-hover:bg-hover")}>{t}</span>
+              <span title={t} className={cx("min-w-0 truncate rounded-chip px-1.5 py-1 transition-[background-color] ease-standard", !on && "group-hover:bg-hover")}>{t}</span>
               <span aria-hidden className={cx("absolute inset-x-2 -bottom-px h-0.5 rounded-full", on ? "bg-mode-solid" : "bg-transparent")} />
             </button>
           );
@@ -205,7 +207,7 @@ function EditField({ label, value, onChange, area }: { label: string; value: str
   );
 }
 
-/* Collapsible card: the same accordion as member configuration, sized for the pane. */
+/* Collapsible card sized for the pane: collapsed = tinted header (reads as a card on the shell); expanded = all white. */
 function Card({ id, label, meta, open, onToggle, children }: {
   id: string; label: string; meta: string; open: boolean; onToggle: () => void; children: ReactNode;
 }) {
@@ -214,7 +216,7 @@ function Card({ id, label, meta, open, onToggle, children }: {
     <section className="shrink-0 overflow-hidden rounded-panel border border-line-subtle bg-surface">
       <h3>
         <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelId}
-          className={cx("flex h-10 w-full cursor-pointer items-center gap-2 px-3 text-start hover:bg-shell", open && "border-b border-line-subtle")}>
+          className={cx("flex h-10 w-full cursor-pointer items-center gap-2 px-3 text-start transition-[background-color] duration-150 ease-standard hover:bg-hover", open ? "border-b border-line-subtle bg-surface" : "bg-shell-alt")}>
           <ChevronDown size={14} aria-hidden className={cx("shrink-0 text-fg-tertiary transition-transform ease-standard", !open && "-rotate-90")} />
           <span className="min-w-0 flex-1 truncate text-ui font-semibold">{label}</span>
           <span className="shrink-0 text-caption text-fg-tertiary tabular-nums">{meta}</span>

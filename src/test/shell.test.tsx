@@ -394,4 +394,27 @@ describe("AppShell", () => {
     expect(screen.getByRole("region", { name: "Member D configuration" })).toBeInTheDocument();
     expect(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: /^Member D/ })).toHaveAttribute("aria-current", "true");
   });
+
+  it("members and properties panes resize from their splitters by keyboard, within limits", async () => {
+    window.localStorage.clear();
+    const { user } = setup();
+    const left = screen.getByRole("separator", { name: "Resize members pane" });
+    expect(left).toHaveAttribute("aria-valuenow", "240");
+    left.focus();
+    await user.keyboard("{ArrowRight}{ArrowRight}");
+    expect(left).toHaveAttribute("aria-valuenow", "272");
+    expect(screen.getByRole("complementary", { name: "Members" })).toHaveStyle({ width: "272px" });
+    await user.keyboard("{End}");
+    expect(left).toHaveAttribute("aria-valuenow", "420");
+
+    /* The properties splitter sits on the pane's leading edge: moving it left widens the pane. */
+    const right = screen.getByRole("separator", { name: "Resize properties pane" });
+    right.focus();
+    await user.keyboard("{ArrowLeft}");
+    expect(right).toHaveAttribute("aria-valuenow", "296");
+    expect(screen.getByRole("complementary", { name: "Properties" })).toHaveStyle({ width: "296px" });
+    await user.keyboard("{Enter}");
+    expect(right).toHaveAttribute("aria-valuenow", "280");
+    window.localStorage.clear();
+  });
 });

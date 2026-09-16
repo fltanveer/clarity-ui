@@ -1,7 +1,8 @@
 import { useId, useMemo, useState } from "react";
 import type { ContextDef } from "../lib/registry";
 import type { Assignment } from "../lib/assignment";
-import { MASTER, STRUCTURES, VIEWS, inView, type MasterMember } from "../lib/demo-data";
+import { MASTER, STRUCTURES, inCatalogueView, type MasterMember } from "../lib/demo-data";
+import { MEMBER_VIEWS } from "../lib/members";
 import { nextSort, sortBy, type SortState } from "../lib/sort";
 import { Button } from "../components/Button";
 import { Checkbox, SelectAll } from "../components/Checkbox";
@@ -33,7 +34,8 @@ export function CataloguePane({ ctx, assignment, className }: CataloguePaneProps
   const { rows, toggleMember, setMembers } = assignment;
   const titleId = useId();
   const [structure, setStructure] = useState(STRUCTURES[0]);
-  const [view, setView] = useState<string>(VIEWS[0]);
+  /* Same views as the members pane; the id selects a rule over this catalogue. */
+  const [view, setView] = useState<string>("master");
   const [filter, setFilter] = useState<AssignmentFilter>("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortState<SortKey> | null>(null);
@@ -47,7 +49,7 @@ export function CataloguePane({ ctx, assignment, className }: CataloguePaneProps
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = MASTER
-      .filter((m) => inView(view, m))
+      .filter((m) => inCatalogueView(view, m))
       .filter((m) => m.name.toLowerCase().includes(q))
       .filter((m) => filter === "all" || (filter === "assigned") === assigned.has(m.name));
     return sortBy<MasterMember, SortKey>(list, sort, (m, k) => m[k]);
@@ -65,7 +67,8 @@ export function CataloguePane({ ctx, assignment, className }: CataloguePaneProps
             structures={STRUCTURES}
             structure={structure}
             onStructure={setStructure}
-            views={VIEWS}
+            views={MEMBER_VIEWS}
+            countOf={(v) => MASTER.filter((m) => inCatalogueView(v.id, m)).length}
             view={view}
             onView={setView}
             lockedReason={ctx.cross ? undefined : "This context assigns within one structure."}
