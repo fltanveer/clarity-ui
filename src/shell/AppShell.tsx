@@ -240,6 +240,7 @@ export function AppShell() {
               locked={Boolean(memberById(member)?.locked)}
               chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed}
               onExit={() => setMember(null)}
+              onManageViews={canAuthor ? () => { setChooserOpen(false); setManageOpen(true); } : undefined}
               onDelete={() => { setDeleted((d) => [...d, member!]); setMember(null); }} />
           ) : (
             <section aria-label="Work area" className="flex min-w-0 flex-1 flex-col overflow-hidden border-s border-line-subtle bg-grid-container">

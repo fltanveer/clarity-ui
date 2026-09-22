@@ -5,7 +5,7 @@ import { ViewList, type ViewListItem } from "./ViewList";
 export interface ViewMenuProps {
   /** Views for this list, rendered like the members view panel. Only the full list applies while assigning. */
   views: readonly ViewListItem[];
-  /** Omit to hide "Manage views…" (host has no view management). */
+  /** Omit to hide "Manage views" (host has no view management). */
   onManageViews?: () => void;
 }
 
@@ -93,10 +93,9 @@ export function ViewMenu({ views, onManageViews }: ViewMenuProps) {
           onKeyDown={onMenuKeyDown}
           className="absolute top-full right-0 z-40 mt-1 flex w-80 flex-col overflow-hidden rounded-panel border border-line-strong bg-surface text-ui shadow-popover"
         >
-          {/* Header band matches the members view panel: 44px white band, caption, hairline. */}
-          <div role="none" className="flex h-row-toolbar shrink-0 items-center gap-2 border-b border-line-subtle bg-surface px-3">
-            <span className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">View</span>
-            <span className="ms-auto text-caption text-fg-tertiary tabular-nums">{items.length} {items.length === 1 ? "view" : "views"}</span>
+          {/* One title band, as in the members view panel: 44px white band, caption, hairline. */}
+          <div role="none" className="flex h-row-toolbar shrink-0 items-center border-b border-line-subtle bg-surface px-3">
+            <span className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Views</span>
           </div>
           <div className="max-h-[min(28rem,60vh)] overflow-y-auto py-1.5">
             <ViewList items={items} activeId={master.id} itemRole="menuitemradio"
@@ -113,7 +112,7 @@ export function ViewMenu({ views, onManageViews }: ViewMenuProps) {
               <button type="button" role="menuitem" tabIndex={-1}
                 onClick={() => { close(true); onManageViews(); }}
                 className="ms-auto inline-flex h-button cursor-pointer items-center gap-1.5 rounded-control border border-line-strong bg-surface px-2.5 text-caption text-fg-secondary hover:bg-hover hover:text-fg-primary focus-visible:-outline-offset-2">
-                <Settings2 size={13} aria-hidden /> Manage views…
+                <Settings2 size={13} aria-hidden /> Manage views
               </button>
             </div>
           )}

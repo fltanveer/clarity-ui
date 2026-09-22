@@ -62,9 +62,11 @@ export interface MemberConfigurationProps {
   onChromeCollapsed: (c: boolean) => void;
   onExit: () => void;
   onDelete: () => void;
+  /** Omit where the user may not author views: the relation pages then hide "Manage views". */
+  onManageViews?: () => void;
 }
 
-export function MemberConfiguration({ name, structure, locked, chromeCollapsed, onChromeCollapsed, onExit, onDelete }: MemberConfigurationProps) {
+export function MemberConfiguration({ name, structure, locked, chromeCollapsed, onChromeCollapsed, onExit, onDelete, onManageViews }: MemberConfigurationProps) {
   /* The shell keys this component by member, so a new member re-seeds everything. */
   const [section, setSection] = useState("identity");
   const seed: Identity = { name, shortName: "", description: "", memo: "" };
@@ -131,7 +133,7 @@ export function MemberConfiguration({ name, structure, locked, chromeCollapsed, 
 
         <div id="member-section" role="region" aria-label={current[1]} className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
           <SectionContent item={current} name={saved.name} schemaSections={schemaSections}
-            system={system} draft={draft} onDraft={setDraft} dirty={dirty} />
+            system={system} draft={draft} onDraft={setDraft} dirty={dirty} onManageViews={onManageViews} />
         </div>
       </div>
 
@@ -145,14 +147,14 @@ export function MemberConfiguration({ name, structure, locked, chromeCollapsed, 
   );
 }
 
-function SectionContent({ item, name, schemaSections, system, draft, onDraft, dirty }: {
+function SectionContent({ item, name, schemaSections, system, draft, onDraft, dirty, onManageViews }: {
   item: Item; name: string; schemaSections: PropertySectionDef[]; system: boolean;
-  draft: Identity; onDraft: (d: Identity) => void; dirty: boolean;
+  draft: Identity; onDraft: (d: Identity) => void; dirty: boolean; onManageViews?: () => void;
 }) {
   const [id, label, , ctx] = item;
 
   /* Relation pages bring their own title bands (the pattern the other pages copy). */
-  if (ctx) return <AssignUnassignSurface key={`${name}-${id}`} ctx={ctx} hideTabs />;
+  if (ctx) return <AssignUnassignSurface key={`${name}-${id}`} ctx={ctx} hideTabs onManageViews={onManageViews} />;
 
   if (id === "identity") {
     return (

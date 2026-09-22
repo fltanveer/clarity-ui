@@ -76,11 +76,12 @@ export function ViewSwitcher({
   return (
     <div ref={panelRef} role="dialog" aria-label="Choose model and view"
       className="absolute start-0 top-row-toolbar bottom-0 z-30 flex w-80 max-w-full flex-col overflow-hidden border-x border-line-strong bg-surface text-ui text-fg-primary shadow-[16px_0_32px_-12px_oklch(0_0_0/0.18)] [clip-path:inset(0_-3rem_0_0)]">
-      {/* Section headers: 44px white band, caption, hairline. */}
+      {/* One title band (44px, white); the fields below label themselves. */}
       <div className="flex h-row-toolbar shrink-0 items-center border-b border-line-subtle bg-surface px-3">
-        <label htmlFor="view-switcher-model" className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Model / Structure</label>
+        <h2 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Views</h2>
       </div>
       <div className="shrink-0 border-b border-line-subtle px-3 py-2.5">
+        <label htmlFor="view-switcher-model" className="mb-1 block text-caption font-medium text-fg-secondary">Model / Structure</label>
         <div className="relative">
           {/* Locked: the structure tabs below the grid are where the model / structure changes. */}
           <Boxes size={14} aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary" />
@@ -93,10 +94,6 @@ export function ViewSwitcher({
         </div>
       </div>
 
-      <div className="flex h-row-toolbar shrink-0 items-center gap-2 border-b border-line-subtle bg-surface px-3">
-        <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">View</h3>
-        <span className="ms-auto text-caption text-fg-tertiary tabular-nums">{views.length} {views.length === 1 ? "view" : "views"}</span>
-      </div>
       {views.length > VIEW_SEARCH_MIN && (
         <div className="shrink-0 border-b border-line-subtle px-3 py-2.5">
           <label className="flex h-control-form items-center gap-1.5 rounded-control border border-line-control bg-surface px-2.5 hover:border-line-control-hover">

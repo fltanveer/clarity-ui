@@ -101,7 +101,7 @@ export function AssignUnassignSurface({
             />
             {target && target.kind === "member" && ctx.scope
               ? <ScopePane key={target.id} target={target} assignment={assignment} onExit={exitScope} />
-              : <CataloguePane ctx={ctx} assignment={assignment} />}
+              : <CataloguePane ctx={ctx} assignment={assignment} onManageViews={onManageViews} />}
           </>
         )}
       </div>

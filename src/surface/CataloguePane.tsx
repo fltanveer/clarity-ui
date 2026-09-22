@@ -26,11 +26,13 @@ type SortKey = "name" | "region";
 export interface CataloguePaneProps {
   ctx: ContextDef;
   assignment: Assignment;
+  /** Omit to hide "Manage views": the host has no view management, or the user may not author. */
+  onManageViews?: () => void;
   className?: string;
 }
 
 /** Right-hand tool slot, default mode: the member catalogue to include from. */
-export function CataloguePane({ ctx, assignment, className }: CataloguePaneProps) {
+export function CataloguePane({ ctx, assignment, onManageViews, className }: CataloguePaneProps) {
   const { rows, toggleMember, setMembers } = assignment;
   const titleId = useId();
   const [structure, setStructure] = useState(STRUCTURES[0]);
@@ -72,6 +74,7 @@ export function CataloguePane({ ctx, assignment, className }: CataloguePaneProps
             view={view}
             onView={setView}
             lockedReason={ctx.cross ? undefined : "This context assigns within one structure."}
+            onManageViews={onManageViews}
           />
         </div>
       </TitleBand>

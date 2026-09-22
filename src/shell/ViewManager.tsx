@@ -159,11 +159,8 @@ export function ViewManager({ structure, structureTokens, onStructure, members, 
         <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-control bg-mode-soft text-mode-ink">
           <Settings2 size={16} />
         </span>
+        {/* The model / structure is stated once, beside the view list it scopes. */}
         <h2 className="shrink-0 text-heading font-semibold">Manage views</h2>
-        <span className="flex min-w-0 items-center gap-1.5 rounded-chip bg-shell px-2 py-0.5 text-ui text-fg-secondary">
-          <Boxes size={13} aria-hidden className="shrink-0 text-mode-ink" />
-          <span className="truncate">Model / Structure: <span className="font-semibold text-fg-primary">{structure ?? "—"}</span></span>
-        </span>
         <span className="min-w-3 flex-1" />
         <ChromeButton variant="icon" className="size-8" onClick={() => guard(onClose)} aria-label="Close view management" title="Close (Esc)">
           <X size={18} aria-hidden />
@@ -430,12 +427,12 @@ function ViewTree({ views, onViews, members, selectedId, onSelect, activeId, can
 
   return (
     <div ref={rootRef} className="flex w-72 shrink-0 flex-col border-e border-line-strong bg-shell">
+      {/* One title band (44px, white), as in the members view panel; the fields below label themselves. */}
+      <div className="flex h-row-toolbar shrink-0 items-center border-b border-line-subtle bg-surface px-3">
+        <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Views</h3>
+      </div>
       {/* Locked here: switching model changes which views exist, so it happens in the view panel, not mid-edit. */}
       <ModelPicker structure={structure} tokens={structureTokens} onStructure={onStructure} disabled />
-      <div className="flex h-row-toolbar shrink-0 items-center gap-2 border-b border-line-subtle bg-surface px-3">
-        <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">View</h3>
-        <span className="ms-auto text-caption text-fg-tertiary tabular-nums">{views.length} {views.length === 1 ? "view" : "views"}</span>
-      </div>
       <div className="flex h-12 shrink-0 items-center gap-1.5 border-b border-line-subtle px-2">
         <label className="flex h-control-form min-w-0 flex-1 items-center gap-1.5 rounded-control border border-line-control bg-surface px-2 hover:border-line-control-hover">
           <Search size={13} aria-hidden className="shrink-0 text-fg-tertiary" />
@@ -618,11 +615,8 @@ function ModelPicker({ structure, tokens, onStructure, disabled }: {
     .filter((t, i, a) => !(isPipe(t) && (i === 0 || i === a.length - 1 || isPipe(a[i - 1]))));
   return (
     <>
-    {/* Section headers match the members view panel: 44px white band, caption, hairline. */}
-    <div className="flex h-row-toolbar shrink-0 items-center border-b border-line-subtle bg-surface px-3">
-      <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Model / Structure</h3>
-    </div>
     <div className="shrink-0 border-b border-line-subtle px-2 py-2.5">
+      <span className="mb-1 block text-caption font-medium text-fg-secondary">Model / Structure</span>
       <button ref={ref} type="button" aria-haspopup={disabled ? undefined : "menu"} aria-expanded={disabled ? undefined : open}
         disabled={disabled} onClick={() => setOpen((o) => !o)}
         aria-label={`Model / Structure: ${structure ?? "none"}${disabled ? "" : ". Change"}`}

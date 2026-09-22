@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from "react";
-import { Boxes, ChevronDown, Layers, Lock, Search } from "lucide-react";
+import { Boxes, ChevronDown, Layers, Lock, Search, Settings2 } from "lucide-react";
 import { Popover } from "../shell/Popover";
+import { ChromeButton } from "../shell/controls";
 import { VIEW_SEARCH_MIN } from "../lib/members";
 import { controlClass } from "./ConfigFields";
 import { ViewList, type ViewListItem } from "./ViewList";
@@ -18,6 +19,8 @@ export interface ViewByProps {
   /** Locked structure is disabled with a lock and a visible reason — never hidden (B10). */
   lockedReason?: string;
   countOf?: (item: ViewListItem) => number | undefined;
+  /** Omit to hide "Manage views" (host has no view management, or the user may not author). */
+  onManageViews?: () => void;
 }
 
 /*
@@ -26,7 +29,7 @@ export interface ViewByProps {
  * pane uses — Model / Structure, search, then the grouped view list — so a view
  * is picked the same way everywhere.
  */
-export function ViewBy({ structures, structure, onStructure, views, view, onView, lockedReason, countOf }: ViewByProps) {
+export function ViewBy({ structures, structure, onStructure, views, view, onView, lockedReason, countOf, onManageViews }: ViewByProps) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const ref = useRef<HTMLButtonElement>(null);
@@ -54,11 +57,12 @@ export function ViewBy({ structures, structure, onStructure, views, view, onView
       </button>
       <Popover anchorRef={ref} open={open} onClose={close} role="dialog" label="View by"
         placement="bottom-end" className="flex max-h-[min(32rem,calc(100vh-8rem))] w-80 flex-col overflow-hidden bg-surface">
-        {/* Section headers match the members view panel: 44px white band, caption, hairline. */}
+        {/* One title band, as in the members view panel; the fields below label themselves. */}
         <div className="flex h-row-toolbar shrink-0 items-center border-b border-line-subtle bg-surface px-3">
-          <label htmlFor={structureId} className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Model / Structure</label>
+          <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Views</h3>
         </div>
         <div className="shrink-0 border-b border-line-subtle px-3 py-2.5">
+          <label htmlFor={structureId} className="mb-1 block text-caption font-medium text-fg-secondary">Model / Structure</label>
           <div className="relative">
             {/* Always locked here, as in the members view panel: structure changes from the structure tabs. */}
             <Boxes size={14} aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary" />
@@ -71,10 +75,6 @@ export function ViewBy({ structures, structure, onStructure, views, view, onView
           </div>
         </div>
 
-        <div className="flex h-row-toolbar shrink-0 items-center gap-2 border-b border-line-subtle bg-surface px-3">
-          <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">View</h3>
-          <span className="ms-auto text-caption text-fg-tertiary tabular-nums">{items.length} {items.length === 1 ? "view" : "views"}</span>
-        </div>
         {items.length > VIEW_SEARCH_MIN && (
           <div className="shrink-0 border-b border-line-subtle px-3 py-2.5">
             <label className="flex h-control-form items-center gap-1.5 rounded-control border border-line-control bg-surface px-2.5 hover:border-line-control-hover">
@@ -89,6 +89,15 @@ export function ViewBy({ structures, structure, onStructure, views, view, onView
           <ViewList items={items} activeId={current?.id ?? view} query={q} countOf={countOf}
             onPick={(id) => { onView(id); close(); ref.current?.focus(); }} />
         </div>
+
+        {/* Same single door to view management as the members view panel. */}
+        {onManageViews && (
+          <div className="flex h-12 shrink-0 items-center border-t border-line-subtle bg-shell px-3">
+            <ChromeButton className="ms-auto" onClick={() => { close(); onManageViews(); }}>
+              <Settings2 size={13} aria-hidden /> Manage views
+            </ChromeButton>
+          </div>
+        )}
       </Popover>
     </>
   );
