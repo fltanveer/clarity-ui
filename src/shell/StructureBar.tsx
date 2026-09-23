@@ -15,6 +15,8 @@ export interface StructureBarProps {
   onStructure: (s: string) => void;
   canAuthor: boolean;
   l100: boolean;
+  /** L100 only: Edit opens the structure's configuration window instead of the rename dialog. */
+  onConfigure: (structure: string) => void;
 }
 
 /*
@@ -22,7 +24,7 @@ export interface StructureBarProps {
  * to the work surface. [+ Add · ☰] sit outside the scrollport. Alt+PgUp /
  * Alt+PgDn switch tabs (Spec 110 §6.1); ←/→ move within the tab list.
  */
-export function StructureBar({ workspace, domain, structure, onStructure, canAuthor, l100 }: StructureBarProps) {
+export function StructureBar({ workspace, domain, structure, onStructure, canAuthor, l100, onConfigure }: StructureBarProps) {
   const raw = domain ? BOTTOM_TABS[domain] ?? [] : [];
   /* Renames and deletions made here, keyed Domain:Structure (the structure id stays the original name). */
   const [labels, setLabels] = useState<Record<string, string>>({});
@@ -88,7 +90,7 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
           ? <Pipe key={`p${i}`} className="mx-1" />
           : <StructureTab key={t} name={t} label={labelOf(t)} on={t === structure} onSelect={() => onStructure(t)}
               system={NON_DELETABLE_STRUCTURES.has(key(t))} canAuthor={canAuthor}
-              onEdit={() => setEditing(t)} onDelete={() => setConfirm(t)} />)}
+              onEdit={() => (l100 ? onConfigure(labelOf(t)) : setEditing(t))} onDelete={() => setConfirm(t)} />)}
       </div>
 
       <div className="flex shrink-0 gap-0.5">

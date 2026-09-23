@@ -14,6 +14,8 @@ export interface DomainBarProps {
   onMode: (m: Mode) => void;
   l100: boolean;
   onL100: (on: boolean) => void;
+  /** L100 only: Edit opens the domain's configuration window. */
+  onConfigure: (domain: string) => void;
   /** data_only users: the MODE toggle is absent from the DOM (Spec 110 §7.4). */
   dataOnly?: boolean;
 }
@@ -23,7 +25,7 @@ export interface DomainBarProps {
  * [+ Add · ☰] sit outside the scrollport so complete access survives any
  * scroll position (CLA-611). Ctrl+PgUp / Ctrl+PgDn switch tabs (Excel parity).
  */
-export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL100, dataOnly }: DomainBarProps) {
+export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL100, onConfigure, dataOnly }: DomainBarProps) {
   const raw = TOP_TABS[workspace] ?? [];
   const addToken = raw.find(isAddToken);
   const items = raw.filter((t) => !isAddToken(t));
@@ -72,7 +74,8 @@ export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL
           <span className="self-center ps-tab-inset text-caption text-fg-tertiary">No domains defined for this workspace</span>
         ) : items.map((t, i) => isPipe(t)
           ? <Pipe key={`p${i}`} className="mx-1.5" />
-          : <DomainTab key={t} name={t} on={t === domain} onSelect={() => onDomain(t)} canEdit={canAuthor} system={CLOSED_DOMAINS.has(t)} />)}
+          : <DomainTab key={t} name={t} on={t === domain} onSelect={() => onDomain(t)} canEdit={canAuthor}
+              system={CLOSED_DOMAINS.has(t)} onConfigure={() => onConfigure(t)} />)}
       </div>
 
       <div className="ms-auto flex shrink-0 items-center gap-2.5 ps-3">
@@ -83,8 +86,8 @@ export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL
   );
 }
 
-function DomainTab({ name, on, onSelect, canEdit, system }: {
-  name: string; on: boolean; onSelect: () => void; canEdit: boolean; system: boolean;
+function DomainTab({ name, on, onSelect, canEdit, system, onConfigure }: {
+  name: string; on: boolean; onSelect: () => void; canEdit: boolean; system: boolean; onConfigure: () => void;
 }) {
   const [menu, setMenu] = useState(false);
   const caretRef = useRef<HTMLButtonElement>(null);
@@ -112,7 +115,7 @@ function DomainTab({ name, on, onSelect, canEdit, system }: {
         </button>
       )}
       <Popover anchorRef={caretRef} open={menu} onClose={() => setMenu(false)} label={`${name} options`} className="min-w-37 py-1">
-        <MenuItem onSelect={() => setMenu(false)}><Pencil size={13} aria-hidden /> Edit</MenuItem>
+        <MenuItem onSelect={() => { setMenu(false); onConfigure(); }}><Pencil size={13} aria-hidden /> Edit</MenuItem>
         <MenuDivider />
         <MenuItem tone="danger" disabled={system} onSelect={() => setMenu(false)}>
           <Trash2 size={13} aria-hidden /> Delete{system && <span className="ms-auto text-caption">closed domain</span>}

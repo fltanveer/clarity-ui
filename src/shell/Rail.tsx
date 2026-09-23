@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen, Settings, ShieldAlert } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Settings, Settings2, ShieldAlert } from "lucide-react";
 import { WORKSPACES, WORKSPACE_ICON, type WorkspaceId } from "../lib/nav";
 import { cx } from "../lib/cx";
 
@@ -9,6 +9,8 @@ export interface RailProps {
   onExpanded: (expanded: boolean) => void;
   l100: boolean;
   onL100: (on: boolean) => void;
+  /** L100 only: configure the workspace this gear sits on. */
+  onConfigure: (id: WorkspaceId) => void;
   chromeCollapsed: boolean;
 }
 
@@ -21,7 +23,7 @@ export interface RailProps {
  * (L100). The footer holds commands and a mode, not workspaces, so they stay
  * out of the list.
  */
-export function Rail({ workspace, onWorkspace, expanded, onExpanded, l100, onL100, chromeCollapsed }: RailProps) {
+export function Rail({ workspace, onWorkspace, expanded, onExpanded, l100, onL100, onConfigure, chromeCollapsed }: RailProps) {
   return (
     <nav
       aria-label="Workspaces"
@@ -62,8 +64,11 @@ export function Rail({ workspace, onWorkspace, expanded, onExpanded, l100, onL10
           const platform = ws.id === "platform";
           const on = platform ? l100 : ws.id === workspace;
           const Icon = WORKSPACE_ICON[ws.id];
+          /* At L100 the workspace itself is configurable. Only the open one carries the
+             gear: nine gears would read as nine settings screens. */
+          const gear = l100 && expanded && !platform && on;
           return (
-            <li key={ws.id}>
+            <li key={ws.id} className="group/ws relative">
               <button
                 type="button"
                 onClick={() => (platform ? onL100(!l100) : onWorkspace(ws.id))}
@@ -77,6 +82,7 @@ export function Rail({ workspace, onWorkspace, expanded, onExpanded, l100, onL10
                   /* Active: deep mode tint, white text, light 3px bar — in every mode.
                      Platform is active only in L100, where the mode is violet. */
                   on ? "bg-mode-deep font-semibold text-rail-fg" : "text-rail-fg-secondary hover:bg-rail-control hover:text-rail-fg",
+                  gear && "pe-9",
                 )}
               >
                 {on && (
@@ -88,6 +94,23 @@ export function Rail({ workspace, onWorkspace, expanded, onExpanded, l100, onL10
                   <span className="ms-auto rounded-[3px] bg-l100-soft px-1.5 text-micro font-semibold tracking-eyebrow text-l100-ink">L100</span>
                 )}
               </button>
+              {gear && (
+                <button
+                  type="button"
+                  onClick={() => onConfigure(ws.id)}
+                  aria-label={`Configure ${ws.label} workspace`}
+                  title={`Configure ${ws.label}`}
+                  /* Present at L100 so the door is discoverable; quiet until the row
+                     is hovered, so the rail still reads as a list of destinations. */
+                  className={cx(
+                    "absolute end-1.5 top-1/2 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-chip",
+                    "transition-[color,background-color] duration-150 ease-standard hover:bg-rail-active hover:text-rail-fg",
+                    "text-rail-fg",
+                  )}
+                >
+                  <Settings2 size={13} strokeWidth={1.75} aria-hidden />
+                </button>
+              )}
             </li>
           );
         })}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MEMBERS, defaultViews, memberById, type MemberView } from "../lib/members";
-import { BOTTOM_TABS, TOP_TABS, firstDomain, firstStructure, isAddToken, isPipe, workspaceLabel, type WorkspaceId } from "../lib/nav";
+import { BOTTOM_TABS, CLOSED_DOMAINS, TOP_TABS, WORKSPACE_ICON, firstDomain, firstStructure, isAddToken, isPipe, workspaceLabel, type WorkspaceId } from "../lib/nav";
+import { Boxes, Layers } from "lucide-react";
 import { Rail } from "./Rail";
 import { Header } from "./Header";
 import { DomainBar } from "./DomainBar";
@@ -13,6 +14,7 @@ import { CollapsedChromeStrip, Footer, WorkspaceStub } from "./Chrome";
 import { MemberConfiguration } from "./MemberConfiguration";
 import { ViewManagerDialog } from "./ViewManager";
 import { ViewSwitcher } from "./ViewSwitcher";
+import { ContainerConfigDialog, type ContainerSubject } from "./ContainerConfiguration";
 import { Splitter } from "./Splitter";
 import { DEFAULT_COLUMNS, type DisplaySettings, type GridMode, type Mode } from "./types";
 
@@ -40,6 +42,47 @@ const readWidth = ({ key, def, min, max }: typeof LEFT) => {
 
 const tabsOf = (list: string[] | undefined) => (list ?? []).filter((t) => !isPipe(t) && !isAddToken(t));
 
+/* Fixture identifiers, so a read-only field shows its shape instead of a blank. */
+const FIXTURE_ID = (seed: string) => `7507a820-9573-4d1d-84be-${seed}`;
+/* Seeds only: the real plural is a stored field, and irregular ones are edited by hand. */
+const singular = (s: string) => s.replace(/ies$/, "y").replace(/s$/, "");
+const plural = (s: string) => (/[^aeiou]y$/.test(s) ? `${s.slice(0, -1)}ies` : /(s|x|z|ch|sh)$/.test(s) ? `${s}es` : `${s}s`);
+
+const workspaceSubject = (ws: WorkspaceId): ContainerSubject => ({
+  kind: "Workspace", label: workspaceLabel(ws), name: singular(workspaceLabel(ws)), plural: workspaceLabel(ws),
+  Icon: WORKSPACE_ICON[ws],
+  keyValue: ws, idValue: FIXTURE_ID("5f82df24bb01"), windowTitle: true,
+  children: { kind: "Domains in this workspace", items: tabsOf(TOP_TABS[ws]) },
+});
+
+const structureSubject = (domain: string, structure: string, members: string[]): ContainerSubject => ({
+  kind: "Domain Structure", label: structure, name: singular(structure), plural: structure, Icon: Layers,
+  keyValue: structure.toLowerCase().replace(/[^a-z0-9]+/g, "_"), idValue: FIXTURE_ID("5f82df24bb03"),
+  parent: { kind: "Domain", name: domain },
+  children: { kind: "Records in this structure", items: members },
+  roles: { kind: "Domain Structure", note: "One shared contract. Cardinality applies in the child role only." },
+  /* Internal taxonomy: visible at L100, read-only, never a Clean UI control (orientation §2). */
+  classification: [
+    { label: "Structure type", hint: "Navigation taxonomy · not a user-controlled value",
+      value: { Parent: "Parent — member instances", Child: "Child — classification values" } },
+    { label: "Model class", value: "Dimension", hint: "Controlled vocabulary · declared by the contract" },
+    { label: "Model type", value: "company", hint: "Type registry key · shared by every record of this kind" },
+    { label: "Is dimensional", value: "Yes", hint: "Participates in dimensional classification" },
+    { label: "Canonical field template", value: "None linked", hint: "Optional · picks a field-template package" },
+    { label: "Assumption driver structure", value: "No", hint: "Hosts assumption-driver members" },
+    { label: "Cardinality", value: "1-to-many — grid in the centre pane",
+      hint: "Child role only · 1-to-1 renders a dropdown in Properties", childOnly: true },
+  ],
+});
+
+const domainSubject = (ws: WorkspaceId, domain: string): ContainerSubject => ({
+  kind: "Domain", label: domain, name: domain, plural: plural(domain), Icon: Boxes,
+  keyValue: domain.toLowerCase().replace(/[^a-z0-9]+/g, "_"), idValue: FIXTURE_ID("5f82df24bb02"),
+  parent: { kind: "Workspace", name: workspaceLabel(ws) },
+  children: { kind: "Structures in this domain", items: tabsOf(BOTTOM_TABS[domain]) },
+  closed: CLOSED_DOMAINS.has(domain),
+});
+
 /*
  * Universal window shell (Spec 110 §5.1, adapted by Prototype 3 A2):
  *   rail │ Row 1 header · Row 2 domain bar
@@ -52,6 +95,8 @@ const tabsOf = (list: string[] | undefined) => (list ?? []).filter((t) => !isPip
 export function AppShell() {
   const [mode, setMode] = useState<Mode>("DATA");
   const [l100, setL100] = useState(false);
+  /* Which container L100 opened for configuration: the rail gear, or a domain's Edit. */
+  const [config, setConfig] = useState<ContainerSubject | null>(null);
   const [workspace, setWorkspace] = useState<WorkspaceId>("dimensions");
   const [domain, setDomain] = useState<string | null>(firstDomain("dimensions"));
   const [structure, setStructure] = useState<string | null>(firstStructure(firstDomain("dimensions")));
@@ -109,6 +154,8 @@ export function AppShell() {
   };
   const changeDomain = (d: string) => { setDomain(d); setStructure(firstStructure(d)); setPeek(null); setChooserOpen(false); };
   const changeMode = (m: Mode) => { setMode(m); setMember(null); setPeek(null); exitGridMode(); };
+  /* Leaving L100 closes what only L100 could open. */
+  const changeL100 = (on: boolean) => { setL100(on); if (!on) setConfig(null); };
 
   /* Portalled surfaces (popovers, the view picker, Manage views, confirms)
      render under <body>, outside this root; mirror the mode onto <html> so
@@ -202,7 +249,8 @@ export function AppShell() {
   return (
     <div data-mode={l100 ? "L100" : mode} className="flex h-full min-w-0 bg-canvas text-ui text-fg-primary">
       <Rail workspace={workspace} onWorkspace={changeWorkspace} expanded={railExpanded} onExpanded={setRailExpanded}
-        l100={l100} onL100={setL100} chromeCollapsed={chromeCollapsed} />
+        onConfigure={(ws) => setConfig(workspaceSubject(ws))}
+        l100={l100} onL100={changeL100} chromeCollapsed={chromeCollapsed} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         {chromeCollapsed ? (
@@ -212,7 +260,8 @@ export function AppShell() {
             <Header workspace={workspace} domain={domain} structure={structure}
               memberName={memberById(member)?.name ?? null} l100={l100} />
             <DomainBar workspace={workspace} domain={domain} onDomain={changeDomain}
-              mode={mode} onMode={changeMode} l100={l100} onL100={setL100} />
+              mode={mode} onMode={changeMode} l100={l100} onL100={changeL100}
+              onConfigure={(d) => setConfig(domainSubject(workspace, d))} />
           </>
         )}
 
@@ -306,8 +355,12 @@ export function AppShell() {
             onActivate={(id) => { setViewId(id); setPeek(null); }} onClose={() => setManageOpen(false)} />
         )}
 
+        {config && <ContainerConfigDialog subject={config} onClose={() => setConfig(null)} />}
+
         <StructureBar workspace={workspace} domain={domain} structure={structure} onStructure={setStructure}
-          canAuthor={canAuthor} l100={l100} />
+          canAuthor={canAuthor} l100={l100}
+          onConfigure={(st) => domain && setConfig(structureSubject(domain, st,
+            MEMBERS.filter((m) => !deleted.includes(m.id)).map((m) => m.name)))} />
         <Footer />
       </div>
     </div>
