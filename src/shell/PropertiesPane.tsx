@@ -218,7 +218,7 @@ function Card({ id, label, meta, open, onToggle, children }: {
         <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelId}
           className={cx("flex h-10 w-full cursor-pointer items-center gap-2 px-3 text-start transition-[background-color] duration-150 ease-standard hover:bg-hover", open ? "border-b border-line-subtle bg-surface" : "bg-shell-alt")}>
           <ChevronDown size={14} aria-hidden className={cx("shrink-0 text-fg-tertiary transition-transform ease-standard", !open && "-rotate-90")} />
-          <span className="min-w-0 flex-1 truncate text-ui font-semibold">{label}</span>
+          <span className="min-w-0 flex-1 truncate text-ui font-semibold tracking-label uppercase">{label}</span>
           <span className="shrink-0 text-caption text-fg-tertiary tabular-nums">{meta}</span>
         </button>
       </h3>

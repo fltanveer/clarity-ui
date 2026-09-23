@@ -64,9 +64,11 @@ export interface MemberConfigurationProps {
   onDelete: () => void;
   /** Omit where the user may not author views: the relation pages then hide "Manage views". */
   onManageViews?: () => void;
+  /** What L100 has done to these fields: renamed, hidden or made read-only here. */
+  fieldRules?: Record<string, { label: string; hiddenInModel: boolean; lockedInModel: boolean }>;
 }
 
-export function MemberConfiguration({ name, structure, locked, chromeCollapsed, onChromeCollapsed, onExit, onDelete, onManageViews }: MemberConfigurationProps) {
+export function MemberConfiguration({ name, structure, locked, chromeCollapsed, onChromeCollapsed, onExit, onDelete, onManageViews, fieldRules }: MemberConfigurationProps) {
   /* The shell keys this component by member, so a new member re-seeds everything. */
   const [section, setSection] = useState("identity");
   const seed: Identity = { name, shortName: "", description: "", memo: "" };
@@ -133,7 +135,8 @@ export function MemberConfiguration({ name, structure, locked, chromeCollapsed, 
 
         <div id="member-section" role="region" aria-label={current[1]} className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
           <SectionContent item={current} name={saved.name} schemaSections={schemaSections}
-            system={system} draft={draft} onDraft={setDraft} dirty={dirty} onManageViews={onManageViews} />
+            system={system} draft={draft} onDraft={setDraft} dirty={dirty} onManageViews={onManageViews}
+            fieldRules={fieldRules} />
         </div>
       </div>
 
@@ -147,9 +150,10 @@ export function MemberConfiguration({ name, structure, locked, chromeCollapsed, 
   );
 }
 
-function SectionContent({ item, name, schemaSections, system, draft, onDraft, dirty, onManageViews }: {
+function SectionContent({ item, name, schemaSections, system, draft, onDraft, dirty, onManageViews, fieldRules }: {
   item: Item; name: string; schemaSections: PropertySectionDef[]; system: boolean;
   draft: Identity; onDraft: (d: Identity) => void; dirty: boolean; onManageViews?: () => void;
+  fieldRules?: Record<string, { label: string; hiddenInModel: boolean; lockedInModel: boolean }>;
 }) {
   const [id, label, , ctx] = item;
 
@@ -157,12 +161,30 @@ function SectionContent({ item, name, schemaSections, system, draft, onDraft, di
   if (ctx) return <AssignUnassignSurface key={`${name}-${id}`} ctx={ctx} hideTabs onManageViews={onManageViews} />;
 
   if (id === "identity") {
+    /* L100 decides what this tier sees: a hidden field is absent, a locked one is read-only. */
+    const rows: Array<{ key: string; label: string; field: keyof Identity; area?: boolean }> = [
+      { key: "member_name", label: "Name | ID", field: "name" },
+      { key: "short_name", label: "Short Name", field: "shortName" },
+      { key: "description", label: "Description", field: "description", area: true },
+      { key: "memo", label: "Memo", field: "memo", area: true },
+    ];
+    const shown = rows.filter((r) => !fieldRules?.[r.key]?.hiddenInModel);
     return (
-      <AttributePage label={label} count={4} dirty={dirty}>
-        <FieldRow label="Name | ID">{(fid) => <TextInput id={fid} value={draft.name} onChange={(v) => onDraft({ ...draft, name: v })} />}</FieldRow>
-        <FieldRow label="Short Name">{(fid) => <TextInput id={fid} value={draft.shortName} onChange={(v) => onDraft({ ...draft, shortName: v })} />}</FieldRow>
-        <FieldRow label="Description">{(fid) => <TextInput id={fid} area value={draft.description} onChange={(v) => onDraft({ ...draft, description: v })} />}</FieldRow>
-        <FieldRow label="Memo">{(fid) => <TextInput id={fid} area value={draft.memo} onChange={(v) => onDraft({ ...draft, memo: v })} />}</FieldRow>
+      <AttributePage label={label} count={shown.length} dirty={dirty}>
+        {shown.map((r) => {
+          const rule = fieldRules?.[r.key];
+          return (
+            <FieldRow key={r.key} label={rule?.label || r.label}
+              hint={rule?.lockedInModel ? (
+                <p className="mt-1 flex items-center gap-1 text-caption text-fg-tertiary">
+                  <Lock size={10} aria-hidden /> Read-only — set by an administrator
+                </p>
+              ) : undefined}>
+              {(fid) => <TextInput id={fid} area={r.area} value={draft[r.field]} disabled={rule?.lockedInModel}
+                onChange={(v) => onDraft({ ...draft, [r.field]: v })} />}
+            </FieldRow>
+          );
+        })}
       </AttributePage>
     );
   }

@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
 import {
-  Check, ChevronDown, Columns3, Download, Filter, Group, Lock, Maximize2, Menu, Minimize2,
+  Boxes, Check, ChevronDown, Columns3, Download, Filter, Group, Lock, Maximize2, Menu, Minimize2,
   Plus, RefreshCw, Search, Settings, SplitSquareHorizontal, Trash2, Upload, X,
 } from "lucide-react";
 import { POV_AXES, initialPov, type PovAxis, type PovValue } from "../lib/pov";
+import { ViewList, type ViewListItem } from "../components/ViewList";
+import { Checkbox } from "../components/Checkbox";
+import { controlClass } from "../components/ConfigFields";
 import { DEFAULT_COLUMNS, type DisplaySettings, type GridColumn, type GridMode } from "./types";
 import { MenuDivider, MenuItem, Popover } from "./Popover";
 import { ChromeButton, Pipe } from "./controls";
@@ -263,70 +266,151 @@ export function PovBar() {
 
 function PovSelect({ axis, value, onChange }: { axis: PovAxis; value: PovValue; onChange: (v: PovValue) => void }) {
   const [open, setOpen] = useState(false);
+  /* The panel edits a draft: choosing a view or ticking members changes nothing
+     until Apply, so a half-made point of view never queries anything. */
+  const [pick, setPick] = useState(false);
+  const [draftView, setDraftView] = useState(value.viewId);
+  const [draftMembers, setDraftMembers] = useState<string[]>(value.memberIds);
   const [q, setQ] = useState("");
   const ref = useRef<HTMLButtonElement>(null);
-  const view = axis.views.find((v) => v.id === value.viewId) ?? axis.views[0];
-  const query = q.trim().toLowerCase();
-  const memberHits = (v: (typeof axis.views)[number]) => v.members.filter((m) => m.toLowerCase().includes(query));
-  const views = query ? axis.views.filter((v) => v.name.toLowerCase().includes(query) || memberHits(v).length) : axis.views;
-  const display = value.memberId ? `${view.name} · ${value.memberId}` : view.name;
+
+  const viewOf = (id: string) => axis.views.find((v) => v.id === id) ?? axis.views[0];
+  const view = viewOf(value.viewId);
+  const draft = viewOf(draftView);
+  const items: ViewListItem[] = axis.views.map((v) => ({
+    id: v.id, name: v.name, folder: v.folder ?? null, kind: v.kind, system: v.system,
+  }));
+  const shown = draft.members.filter((m) => m.toLowerCase().includes(q.trim().toLowerCase()));
+  const all = draftMembers.length === 0;
+
+  const begin = () => {
+    setPick(false); setQ("");
+    setDraftView(value.viewId); setDraftMembers(value.memberIds);
+    setOpen(true);
+  };
+  const close = () => { setOpen(false); setPick(false); setQ(""); };
+  /* Back to the axis default: its first view, every member. Applied like any other choice. */
+  const atDefault = draftView === axis.views[0].id && draftMembers.length === 0;
+  const reset = () => { setDraftView(axis.views[0].id); setDraftMembers([]); setPick(false); setQ(""); };
+  const apply = () => {
+    onChange({ viewId: draftView, memberIds: draftMembers.length === draft.members.length ? [] : draftMembers });
+    close();
+    ref.current?.focus();
+  };
 
   return (
     <>
       <button ref={ref} type="button" aria-haspopup="dialog" aria-expanded={open}
-        onClick={() => { setQ(""); setOpen((o) => !o); }}
-        aria-label={`${axis.label}: ${display}${value.memberId ? ", narrowed to one member" : ""}`}
+        onClick={() => (open ? close() : begin())}
+        aria-label={`${axis.label}: ${view.name}${value.memberIds.length ? `, ${value.memberIds.length} of ${view.members.length} members` : ""}`}
         /* Borderless at rest: context reads as current state, not a form. The
            chevron plus a hover/open fill mark it as a control. */
         className={cx("flex h-pov shrink-0 cursor-pointer flex-col items-start justify-center rounded-control px-2 text-start hover:bg-hover",
           open && "bg-hover")}>
         <span aria-hidden className="text-micro tracking-eyebrow whitespace-nowrap text-fg-tertiary uppercase">{axis.label}</span>
         <span aria-hidden className="flex min-w-0 items-center gap-1">
-          <span className="max-w-42 truncate text-ui font-semibold text-mode-ink">{display}</span>
+          <span className="max-w-42 truncate text-ui font-semibold text-mode-ink">{view.name}</span>
           {/* A narrowed context is visible on the bar, not only in the panel. */}
-          {value.memberId && <span className="rounded-chip border border-mode-solid px-1 text-micro font-bold text-mode-ink">1</span>}
+          {Boolean(value.memberIds.length) && (
+            <span className="rounded-chip border border-mode-solid px-1 text-micro font-bold text-mode-ink tabular-nums">
+              {value.memberIds.length}
+            </span>
+          )}
           <ChevronDown size={13} className="shrink-0 text-fg-tertiary" />
         </span>
       </button>
-      <Popover anchorRef={ref} open={open} onClose={() => setOpen(false)} role="dialog" label={axis.label}
-        className="flex max-h-90 w-65 flex-col overflow-hidden">
-        <div className="shrink-0 p-2 pb-1.5">
-          <label className="flex h-7 items-center gap-1.5 rounded-control border border-line-control bg-surface hover:border-line-control-hover px-2">
-            <Search size={12} aria-hidden className="text-fg-tertiary" />
-            <span className="sr-only">Search {axis.label}</span>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${axis.label.toLowerCase()}`}
-              className="min-w-0 flex-1 bg-transparent text-caption outline-none placeholder:text-fg-tertiary" />
-          </label>
+
+      <Popover anchorRef={ref} open={open} onClose={close} role="dialog" label={axis.label}
+        className="flex max-h-[min(32rem,calc(100vh-8rem))] w-80 flex-col overflow-hidden bg-surface">
+        <div className="flex h-row-toolbar shrink-0 items-center border-b border-line-subtle bg-surface px-3">
+          <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">{axis.label}</h3>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-          {views.map((v) => {
-            const current = v.id === view.id;
-            return (
-              <div key={v.id} className="mb-1">
-                <button type="button" onClick={() => onChange({ viewId: v.id, memberId: null })}
-                  className={cx("flex w-full cursor-pointer items-center gap-2 rounded-chip px-1.5 py-1 text-start text-ui",
-                    current ? "bg-mode-soft font-semibold text-mode-ink" : "hover:bg-hover")}>
-                  <span className="min-w-0 flex-1 truncate">{v.name}</span>
-                  <span className="text-caption font-normal text-fg-tertiary tabular-nums">{v.members.length}</span>
-                </button>
-                {/* Members show for the selected view only, so the picker never becomes a tree. */}
-                {current && (
-                  <fieldset className="mt-0.5 ps-2">
-                    <legend className="sr-only">Members of {v.name}</legend>
-                    {[null, ...(query ? memberHits(v) : v.members)].map((m) => (
-                      <label key={m ?? "__all"} className={cx("flex cursor-pointer items-center gap-2 px-1.5 py-0.5 text-caption",
-                        value.memberId === m ? "font-semibold text-mode-ink" : "text-fg-secondary")}>
-                        <input type="radio" name={`pov-${axis.id}`} checked={value.memberId === m}
-                          onChange={() => onChange({ viewId: v.id, memberId: m })} className="accent-mode-solid" />
-                        {m ?? `All (${v.members.length})`}
-                      </label>
-                    ))}
-                  </fieldset>
-                )}
-              </div>
-            );
-          })}
-          {!views.length && <p className="px-1.5 py-2.5 text-caption text-fg-tertiary">No match for “{q}”.</p>}
+
+        {/* Which view, then which of its members: one panel, two steps.
+            The view control is the search: open it and type to filter the list. */}
+        <div className="shrink-0 border-b border-line-subtle px-3 py-2.5">
+          <span className="mb-1 block text-caption font-medium text-fg-secondary">View</span>
+          <div className="relative">
+            <Boxes size={14} aria-hidden className={cx("pointer-events-none absolute start-2.5 top-1/2 -translate-x-0 -translate-y-1/2",
+              pick ? "text-mode-ink" : "text-fg-tertiary")} />
+            {pick ? (
+              <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={draft.name}
+                aria-label="Search views" aria-expanded
+                onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setPick(false); setQ(""); } }}
+                className={cx(controlClass, "h-control-form border-mode-solid ps-8 pe-8")} />
+            ) : (
+              <button type="button" onClick={() => { setPick(true); setQ(""); }} aria-expanded={false}
+                className={cx(controlClass, "flex h-control-form cursor-pointer items-center ps-8 pe-8 text-start font-semibold")}>
+                <span className="min-w-0 flex-1 truncate">{draft.name}</span>
+              </button>
+            )}
+            <button type="button" onClick={() => { setPick((o) => !o); setQ(""); }}
+              aria-label={pick ? "Close the view list" : "Choose a view"}
+              className="absolute end-1.5 top-1/2 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-chip text-fg-tertiary hover:bg-hover hover:text-fg-primary">
+              <ChevronDown size={14} aria-hidden className={cx("transition-transform ease-standard", pick && "rotate-180")} />
+            </button>
+          </div>
+        </div>
+
+        {!pick && (
+          <div className="shrink-0 border-b border-line-subtle px-3 py-2.5">
+            <label className="flex h-control-form items-center gap-1.5 rounded-control border border-line-control bg-surface px-2.5 hover:border-line-control-hover">
+              <Search size={13} aria-hidden className="shrink-0 text-fg-tertiary" />
+              <span className="sr-only">Search members of {draft.name}</span>
+              <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search members"
+                className="min-w-0 flex-1 bg-transparent text-ui outline-none placeholder:text-fg-tertiary [&::-webkit-search-cancel-button]:hidden" />
+            </label>
+          </div>
+        )}
+
+        {pick ? (
+          /* The one shared view list, so a view reads the same here as everywhere. */
+          <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
+            <ViewList items={items} activeId={draftView} query={q}
+              countOf={(v) => viewOf(v.id).members.length}
+              onPick={(id) => { setDraftView(id); setDraftMembers([]); setPick(false); setQ(""); }} />
+          </div>
+        ) : (
+          <>
+            <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line-subtle bg-shell px-3">
+              <label className="flex cursor-pointer items-center gap-2 text-caption text-fg-secondary">
+                <Checkbox checked={all} indeterminate={!all && draftMembers.length < draft.members.length}
+                  onChange={() => setDraftMembers([])} aria-label={`Every member of ${draft.name}`} />
+                Every member
+              </label>
+              <span className="ms-auto text-caption text-fg-tertiary tabular-nums">
+                {draftMembers.length ? `${draftMembers.length} selected` : `${draft.members.length} members`}
+              </span>
+            </div>
+            <ul className="min-h-0 flex-1 overflow-y-auto py-1">
+              {shown.map((m) => {
+                const on = draftMembers.includes(m);
+                return (
+                  <li key={m}>
+                    <label className={cx("flex h-9 cursor-pointer items-center gap-2 px-3 text-ui",
+                      on ? "bg-mode-soft font-semibold text-mode-ink" : "text-fg-primary hover:bg-hover")}>
+                      <Checkbox checked={on} onChange={(e) =>
+                        setDraftMembers((ms) => (e.target.checked ? [...ms, m] : ms.filter((x) => x !== m)))} />
+                      <span className="min-w-0 flex-1 truncate">{m}</span>
+                    </label>
+                  </li>
+                );
+              })}
+              {!shown.length && <li className="px-3 py-3 text-ui text-fg-tertiary">No members match “{q}”.</li>}
+            </ul>
+          </>
+        )}
+
+        <div className="flex shrink-0 items-center gap-2 border-t border-line-subtle bg-shell px-3 py-2">
+          <ChromeButton className="h-control-h bg-surface px-2.5" disabled={atDefault} onClick={reset}
+            title={`Back to ${axis.views[0].name}, every member`}>
+            <RefreshCw size={12} aria-hidden /> Reset
+          </ChromeButton>
+          <span className="min-w-0 flex-1 truncate text-caption text-fg-tertiary">
+            {draftMembers.length ? `${draftMembers.length} of ${draft.members.length}` : "Every member"}
+          </span>
+          <ChromeButton className="h-control-h bg-surface px-3" onClick={close}>Cancel</ChromeButton>
+          <ChromeButton variant="primary" onClick={apply}>Apply</ChromeButton>
         </div>
       </Popover>
     </>

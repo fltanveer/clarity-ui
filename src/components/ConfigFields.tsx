@@ -73,11 +73,24 @@ export function ConfigIndex({ groups, section, onSection, label, controls, dirty
  * One row per field: label in a fixed 168px gutter, every control filling the
  * same value column, so edges line up on every row and section (CH-004).
  */
-export function FieldRow({ label, hint, children }: { label: string; hint?: ReactNode; children: (id: string) => ReactNode }) {
+export function FieldRow({ label, hint, state, children }: {
+  label: string; hint?: ReactNode;
+  /** What a lower tier will see, when an administrator has changed it. */
+  state?: "hidden" | "locked";
+  children: (id: string) => ReactNode;
+}) {
   const id = useId();
   return (
     <div className="flex items-start gap-4 border-b border-line-subtle py-2.5 last:border-b-0">
-      <label htmlFor={id} className="w-42 shrink-0 pt-1.5 text-ui text-fg-secondary">{label}</label>
+      <label htmlFor={id} className="w-42 shrink-0 pt-1.5 text-ui text-fg-secondary">
+        {label}
+        {state && (
+          <span className={cx("ms-1.5 rounded-chip px-1.5 py-0.5 align-middle text-micro font-semibold whitespace-nowrap",
+            state === "hidden" ? "bg-danger-soft text-danger-text" : "bg-shell-alt text-fg-secondary")}>
+            {state === "hidden" ? "HIDDEN IN MODEL" : "READ-ONLY IN MODEL"}
+          </span>
+        )}
+      </label>
       <div className="min-w-0 flex-1">
         {children(id)}
         {hint}

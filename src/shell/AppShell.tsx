@@ -14,7 +14,8 @@ import { CollapsedChromeStrip, Footer, WorkspaceStub } from "./Chrome";
 import { MemberConfiguration } from "./MemberConfiguration";
 import { ViewManagerDialog } from "./ViewManager";
 import { ViewSwitcher } from "./ViewSwitcher";
-import { ContainerConfigDialog, type ContainerSubject } from "./ContainerConfiguration";
+import { ContainerConfigDialog, ContainerConfiguration, identityFieldsFor, type ContainerSubject } from "./ContainerConfiguration";
+import { seedFieldSettings, type FieldSettingsValue } from "./FieldSettings";
 import { Splitter } from "./Splitter";
 import { DEFAULT_COLUMNS, type DisplaySettings, type GridMode, type Mode } from "./types";
 
@@ -53,6 +54,15 @@ const workspaceSubject = (ws: WorkspaceId): ContainerSubject => ({
   Icon: WORKSPACE_ICON[ws],
   keyValue: ws, idValue: FIXTURE_ID("5f82df24bb01"), windowTitle: true,
   children: { kind: "Domains in this workspace", items: tabsOf(TOP_TABS[ws]) },
+});
+
+/* A member of a structure IS a Model: the rulebook its records follow. One name, no plural. */
+const modelSubject = (structure: string, name: string): ContainerSubject => ({
+  kind: "Model", label: name, name, plural: plural(name), Icon: Layers, noPlural: true,
+  keyValue: name.toLowerCase().replace(/[^a-z0-9]+/g, "_"), idValue: FIXTURE_ID("5f82df24bb04"),
+  parent: { kind: "Domain Structure", name: structure },
+  children: { kind: "Records that follow this model", items: [] },
+  notice: "This Model is an approved role that is not implemented yet: its type contract, provisioning and Model → Record edge are still missing, so these fields are targets rather than stored values.",
 });
 
 const structureSubject = (domain: string, structure: string, members: string[]): ContainerSubject => ({
@@ -97,6 +107,9 @@ export function AppShell() {
   const [l100, setL100] = useState(false);
   /* Which container L100 opened for configuration: the rail gear, or a domain's Edit. */
   const [config, setConfig] = useState<ContainerSubject | null>(null);
+  /* Field rules L100 sets on a Model, keyed by structure. MODEL mode reads them: what is
+     hidden here is absent there, and what is locked here is read-only there. */
+  const [fieldRules, setFieldRules] = useState<Record<string, Record<string, FieldSettingsValue>>>({});
   const [workspace, setWorkspace] = useState<WorkspaceId>("dimensions");
   const [domain, setDomain] = useState<string | null>(firstDomain("dimensions"));
   const [structure, setStructure] = useState<string | null>(firstStructure(firstDomain("dimensions")));
@@ -234,8 +247,10 @@ export function AppShell() {
   const isDimensions = workspace === "dimensions";
   /* MODEL + member selected → member configuration (CH-002), no far-right pane. */
   const memberMode = isDimensions && mode === "MODEL" && member !== null;
+  /* L100 · a member of a structure is a Model, so picking one configures that Model. */
+  const modelMode = isDimensions && l100 && member !== null && structure !== null;
   /* MODEL master list has no properties pane: it could only restate the name. */
-  const showProperties = isDimensions && !memberMode && !(mode === "MODEL" && member === null);
+  const showProperties = isDimensions && !memberMode && !modelMode && !(mode === "MODEL" && member === null);
   const memberName = memberById(peek ?? member)?.name ?? null;
   /* A pane can only grow into space the grid does not need. */
   const rightTaken = showProperties ? (rightOpen ? rightWidth : RIGHT_RAIL) : 0;
@@ -272,8 +287,7 @@ export function AppShell() {
             <LeftPane collapsed={leftCollapsed} width={leftShown} onCollapsed={setLeftCollapsed} canAuthor={canAuthor}
               member={member} onMember={(id) => { setMember(id); setPeek(null); }} peek={peek}
               structure={structure} view={view} hidden={deleted}
-              chooserOpen={chooserOpen} onChooser={(o) => { setChooserOpen(o); if (o) exitGridMode(); }}
- />
+              chooserOpen={chooserOpen} onChooser={(o) => { setChooserOpen(o); if (o) exitGridMode(); }} />
           )}
           {isDimensions && !leftCollapsed && (
             <Splitter label="Resize members pane" side="start" value={leftShown}
@@ -284,12 +298,19 @@ export function AppShell() {
               44px toolbar row that both the work area (action toolbar) and member
               configuration (its header) start with, so it opens from either. */}
           <div className="relative flex min-h-0 min-w-0 flex-1">
-          {memberMode ? (
+          {modelMode ? (
+            /* The Model owns the work area while it is being configured. */
+            <ContainerConfiguration key={member} variant="inline"
+              subject={modelSubject(structure!, memberById(member)!.name)} onClose={() => setMember(null)}
+              settings={fieldRules[structure!] ?? seedFieldSettings(identityFieldsFor(modelSubject(structure!, "")))}
+              onSettings={(next) => setFieldRules((r) => ({ ...r, [structure!]: next }))} />
+          ) : memberMode ? (
             <MemberConfiguration key={member} name={memberById(member)!.name} structure={structure}
               locked={Boolean(memberById(member)?.locked)}
               chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed}
               onExit={() => setMember(null)}
               onManageViews={canAuthor ? () => { setChooserOpen(false); setManageOpen(true); } : undefined}
+              fieldRules={structure ? fieldRules[structure] : undefined}
               onDelete={() => { setDeleted((d) => [...d, member!]); setMember(null); }} />
           ) : (
             <section aria-label="Work area" className="flex min-w-0 flex-1 flex-col overflow-hidden border-s border-line-subtle bg-grid-container">
@@ -309,7 +330,9 @@ export function AppShell() {
                   <ViewToolbar query={gridQuery} onQuery={setGridQuery} display={display} onDisplay={setDisplay}
                     columns={columns} onColumns={setColumns} />
                 )}
-                <PovBar />
+                {/* Point of view is a DATA context: which report, company, version you are reading.
+                    Authoring a model has no point of view, so the bar goes with the mode. */}
+                {mode === "DATA" && !l100 && <PovBar />}
                 {isDimensions ? (
                   <MemberGrid members={baseRows} columns={columns.visible} display={display}
                     member={member} peek={peek} onPeek={setPeek}

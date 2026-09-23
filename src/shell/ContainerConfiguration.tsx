@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
-  ArrowUpRight, CornerDownRight, FileText, IdCard, LayoutGrid, Link2, Lock, Shield, Settings2, X,
-  type LucideIcon,
+  ArrowUpRight, ChevronLeft, CornerDownRight, FileText, IdCard, LayoutGrid, Link2, Lock, Shield, Settings2,
+  TriangleAlert, X, type LucideIcon,
 } from "lucide-react";
 import { AssignUnassignSurface } from "../surface/AssignUnassignSurface";
 import { PaneTitle, TitleBand } from "../components/Grid";
@@ -10,11 +10,14 @@ import { ConfigIndex, DerivedHint, FieldRow, TextInput, controlClass, type Index
 import { Switch } from "../components/Switch";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { ChromeButton, Pipe } from "./controls";
+import { FieldSettingsPanel, FieldSettingsRail, seedFieldSettings, type FieldSettingsValue, type FieldSpec } from "./FieldSettings";
 import { cx } from "../lib/cx";
 
 /*
- * Container configuration (L100 only) — one window for the objects that hold
- * other objects: a Workspace and the Domains inside it.
+ * Container configuration (L100 only) — one surface for the objects that hold
+ * other objects: the Workspace, its Domains, their Structures, and the Model
+ * inside a structure. The three containers open it as a modal
+ * (ContainerConfigDialog); the Model opens it in place, in the work area.
  *
  *   ┌ header: ⚙ Dimensions · Workspace ───────── Cancel · Save · close ┐
  *   │ WORKSPACE            │ page title band                          │
@@ -45,6 +48,10 @@ export interface ContainerSubject {
   idValue: string;
   /** Workspace only: names the browser window. */
   windowTitle?: boolean;
+  /** A Model has one name; containers that label tabs and lists also carry a plural. */
+  noPlural?: boolean;
+  /** What is unresolved about this object, stated where it is edited rather than hidden. */
+  notice?: string;
   /** What owns it. Absent for the top of the chain. */
   parent?: { kind: string; name: string };
   /** What it owns: the child tabs, already stripped of pipes and add tokens. */
@@ -84,12 +91,44 @@ const ROLE_OPTIONS = [{ value: "Parent" as const, label: "Parent" }, { value: "C
 
 const STAMP = "2026-08-13 10:46";
 
+/* One declaration per identity field: the pane renders it, field settings renames it. */
+const IDENTITY_FIELDS: readonly (FieldSpec & { kindOnly?: "plural" | "windowTitle"; control: keyof Identity | "icon" | "color" })[] = [
+  { key: "member_name", label: "Name | ID", type: "String (Text)", system: true, control: "name",
+    helper: "" },
+  { key: "icon_name", label: "Icon", type: "Icon", control: "icon" },
+  { key: "color_scheme", label: "Color", type: "Select", control: "color" },
+  { key: "plural_name", label: "Plural name", type: "String (Text)", control: "plural", kindOnly: "plural",
+    helper: "Labels lists and tabs. Blank falls back to the name." },
+  { key: "short_name", label: "Short name", type: "String (Text)", control: "shortName",
+    helper: "Up to 16 characters. A display alias, never a key." },
+  { key: "description", label: "Description", type: "Text", control: "description" },
+  { key: "memo", label: "Memo", type: "Text", control: "memo" },
+  { key: "window_title", label: "Window title", type: "String (Text)", control: "windowTitle", kindOnly: "windowTitle",
+    helper: "Workspace only. Names the browser window." },
+];
+
+export const identityFieldsFor = (subject: ContainerSubject) => IDENTITY_FIELDS.filter((f) =>
+  f.kindOnly === undefined
+  || (f.kindOnly === "plural" && !subject.noPlural)
+  || (f.kindOnly === "windowTitle" && subject.windowTitle));
+
 export interface ContainerConfigurationProps {
   subject: ContainerSubject;
   onClose: () => void;
+  /** Field settings, owned by the shell so MODEL mode honours what L100 sets here. */
+  settings?: Record<string, FieldSettingsValue>;
+  onSettings?: (next: Record<string, FieldSettingsValue>) => void;
+  /**
+   * "modal" — the container windows, opened over the shell.
+   * "inline" — the Model, which owns the work area, so it wears the same
+   * 44px header band as member configuration (one row height across the centre).
+   */
+  variant?: "modal" | "inline";
 }
 
-export function ContainerConfiguration({ subject, onClose }: ContainerConfigurationProps) {
+export function ContainerConfiguration({
+  subject, onClose, settings: hostSettings, onSettings, variant = "modal",
+}: ContainerConfigurationProps) {
   const { kind, label, Icon } = subject;
   const seedId: Identity = {
     name: subject.name, plural: subject.plural, shortName: "",
@@ -98,6 +137,13 @@ export function ContainerConfiguration({ subject, onClose }: ContainerConfigurat
   const seedGov: Governance = { order: "0", hidden: false, inactive: false, renamable: !subject.closed };
   const [section, setSection] = useState<SectionId>("identity");
   const [role, setRole] = useState<Role>("Parent");
+  /* Field settings: what each field is called and how it behaves. L100 work, so inline only.
+     The shell owns them where it needs to apply them elsewhere; otherwise they are local. */
+  const [ownSettings, setOwnSettings] = useState(() => seedFieldSettings(identityFieldsFor(subject)));
+  const settings = hostSettings ?? ownSettings;
+  const setSettings = (next: Record<string, FieldSettingsValue>) =>
+    (onSettings ? onSettings(next) : setOwnSettings(next));
+  const [fieldsOpen, setFieldsOpen] = useState(false);
   /* Classification only exists where the contract declares one. */
   const index = useMemo<IndexGroup[]>(() => [
     { group: "Properties", items: [{ id: "identity", label: "Identity", Icon: IdCard }] },
@@ -120,39 +166,70 @@ export function ContainerConfiguration({ subject, onClose }: ContainerConfigurat
 
   return (
     <section aria-label={`${label} ${kind.toLowerCase()} configuration`} className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line-strong bg-surface ps-4 pe-3">
-        <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-control bg-mode-soft text-mode-ink">
-          <Icon size={16} />
-        </span>
-        <div className="min-w-0">
-          <h2 className="truncate text-heading font-semibold">{label}</h2>
-          <p className="text-caption text-fg-tertiary">{kind}</p>
-        </div>
-        <span className="min-w-3 flex-1" />
-        <div className="flex shrink-0 items-center gap-1.5">
-          <ChromeButton className="h-control-h bg-surface px-3" disabled={!dirty}
-            onClick={() => { setId(savedId); setGov(savedGov); }}>Cancel</ChromeButton>
-          <ChromeButton variant="primary" disabled={!dirty}
-            onClick={() => { setSavedId(id); setSavedGov(gov); }}>Save</ChromeButton>
-          <Pipe className="mx-1" />
-        </div>
-        <ChromeButton variant="icon" className="size-8" onClick={onClose}
-          aria-label={`Close ${kind.toLowerCase()} configuration`} title="Close (Esc)">
-          <X size={18} aria-hidden />
-        </ChromeButton>
-      </header>
+      {variant === "inline" ? (
+        /* Same band as member configuration — 44px, mode tint, back arrow, path — with the
+           kind spelled out, so "configuring the Model" never reads as "configuring a record". */
+        <header className="flex h-row-toolbar shrink-0 items-center gap-2 border-b border-line-strong bg-mode-soft ps-1.5 pe-2">
+          <button type="button" onClick={onClose} aria-label="Back to the list"
+            className="grid h-6 cursor-pointer place-items-center rounded-chip px-1.5 text-mode-ink hover:bg-surface">
+            <ChevronLeft size={15} aria-hidden />
+          </button>
+          {subject.parent && (
+            <>
+              <span className="shrink-0 text-caption font-semibold tracking-label whitespace-nowrap text-mode-ink uppercase">{subject.parent.name}</span>
+              <span aria-hidden className="shrink-0 text-caption text-mode-ink">|</span>
+            </>
+          )}
+          <h2 title={label} className="min-w-0 shrink truncate text-ui font-semibold">{label}</h2>
+          <span className="shrink-0 rounded-[3px] bg-mode-solid px-1.5 text-micro font-semibold tracking-eyebrow text-fg-on-accent uppercase">{kind}</span>
+          <span className="shrink-0 text-caption whitespace-nowrap text-fg-tertiary">· {LABELS[section]}</span>
+          <span className="min-w-3 flex-1" />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <ChromeButton className="h-control-h bg-surface px-3" disabled={!dirty}
+              onClick={() => { setId(savedId); setGov(savedGov); }}>Cancel</ChromeButton>
+            <ChromeButton variant="primary" disabled={!dirty}
+              onClick={() => { setSavedId(id); setSavedGov(gov); }}>Save</ChromeButton>
+          </div>
+        </header>
+      ) : (
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line-strong bg-surface ps-4 pe-3">
+          <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-control bg-mode-soft text-mode-ink">
+            <Icon size={16} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-heading font-semibold">{label}</h2>
+            <p className="text-caption text-fg-tertiary">{kind}</p>
+          </div>
+          <span className="min-w-3 flex-1" />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <ChromeButton className="h-control-h bg-surface px-3" disabled={!dirty}
+              onClick={() => { setId(savedId); setGov(savedGov); }}>Cancel</ChromeButton>
+            <ChromeButton variant="primary" disabled={!dirty}
+              onClick={() => { setSavedId(id); setSavedGov(gov); }}>Save</ChromeButton>
+            <Pipe className="mx-1" />
+          </div>
+          <ChromeButton variant="icon" className="size-8" onClick={onClose}
+            aria-label={`Close ${kind.toLowerCase()} configuration`} title="Close (Esc)">
+            <X size={18} aria-hidden />
+          </ChromeButton>
+        </header>
+      )}
 
       <div className="flex min-h-0 flex-1">
         <div className="flex w-cfg-index shrink-0 flex-col border-e border-line-strong bg-shell-alt">
-          {/* Title band matches the view surfaces: 44px, caption, hairline. */}
-          <div className="flex h-row-toolbar shrink-0 items-center border-b border-line-subtle bg-surface px-3">
-            <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">{kind}</h3>
-          </div>
+          {/* Modal only: the window needs to name its subject. In place, the header band
+              above already says it, and member configuration's index carries no band. */}
+          {variant === "modal" && (
+            <div className="flex h-row-toolbar shrink-0 items-center border-b border-line-subtle bg-surface px-3">
+              <h3 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">{kind}</h3>
+            </div>
+          )}
           <ConfigIndex groups={index} section={section} onSection={(s) => setSection(s as SectionId)}
             label={`${kind} sections`} controls="container-section"
             dirty={[...(idDirty ? ["identity"] : []), ...(govDirty ? ["governance"] : [])]} />
         </div>
 
+        <div className="relative flex min-h-0 min-w-0 flex-1">
         <div id="container-section" role="region" aria-label={LABELS[section]}
           className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
           {/* One shared contract, two roles: the bar says which role the pane is showing. */}
@@ -165,19 +242,35 @@ export function ContainerConfiguration({ subject, onClose }: ContainerConfigurat
               <SegmentedControl options={ROLE_OPTIONS} value={role} onChange={setRole} label="Structure role" />
             </div>
           )}
-          {section === "identity" && <IdentityPage subject={subject} value={id} onChange={setId} dirty={idDirty} />}
+          {section === "identity" && <IdentityPage subject={subject} value={id} onChange={setId} dirty={idDirty} settings={settings} />}
           {section === "classification" && <ClassificationPage rows={subject.classification ?? []} role={role} />}
           {section === "permissions" && <AssignUnassignSurface key={`${kind}-${label}-perm`} ctx="PERMISSIONS" hideTabs />}
           {section === "relationships" && <RelationshipsPage subject={subject} />}
           {section === "governance" && <GovernancePage subject={subject} value={gov} onChange={setGov} dirty={govDirty} />}
           {section === "audit" && <AuditPage subject={subject} />}
         </div>
+
+        {variant === "inline" && (
+          <>
+            {fieldsOpen && (
+              <FieldSettingsPanel fields={identityFieldsFor(subject)} values={settings}
+                onChange={(key, next) => setSettings({ ...settings, [key]: next })}
+                onClose={() => setFieldsOpen(false)} />
+            )}
+            <FieldSettingsRail active={section === "identity"} open={fieldsOpen}
+              onOpen={() => setFieldsOpen((o) => !o)}
+              reason="Field settings apply to Identity fields. Open Identity to edit them." />
+          </>
+        )}
+        </div>
       </div>
     </section>
   );
 }
 
-function Page({ label, count, dirty, children }: { label: string; count?: number; dirty?: boolean; children: ReactNode }) {
+function Page({ label, count, dirty, notice, children }: {
+  label: string; count?: number; dirty?: boolean; notice?: string; children: ReactNode;
+}) {
   return (
     <>
       <TitleBand>
@@ -185,7 +278,15 @@ function Page({ label, count, dirty, children }: { label: string; count?: number
         {dirty && <span role="status" className="ms-auto text-caption font-semibold text-warning-text">Unsaved changes</span>}
       </TitleBand>
       <div className="min-h-0 flex-1 overflow-auto bg-canvas p-4">
-        <div className="max-w-3xl rounded-panel border border-line-subtle bg-surface px-4">{children}</div>
+        <div className="flex max-w-3xl flex-col gap-3">
+          {/* What is unresolved is said on the page that edits it, not left for someone to discover. */}
+          {notice && (
+            <p className="flex items-start gap-2 rounded-panel bg-warning-soft px-3.5 py-2.5 text-ui leading-body text-warning-text">
+              <TriangleAlert size={14} aria-hidden className="mt-0.5 shrink-0" />{notice}
+            </p>
+          )}
+          <div className="rounded-panel border border-line-subtle bg-surface px-4">{children}</div>
+        </div>
       </div>
     </>
   );
@@ -210,41 +311,40 @@ function StubPicker({ id, swatch, children }: { id: string; swatch: ReactNode; c
   );
 }
 
-function IdentityPage({ subject, value, onChange, dirty }: {
+function IdentityPage({ subject, value, onChange, dirty, settings }: {
   subject: ContainerSubject; value: Identity; onChange: (v: Identity) => void; dirty: boolean;
+  settings: Record<string, FieldSettingsValue>;
 }) {
   const set = <K extends keyof Identity>(k: K, v: Identity[K]) => onChange({ ...value, [k]: v });
-  const count = 7 + (subject.windowTitle ? 1 : 0);
+  const fields = identityFieldsFor(subject);
   return (
-    <Page label="Identity" count={count} dirty={dirty}>
-      <FieldRow label="Name | ID"
-        hint={subject.closed ? (
-          <p className="mt-1 flex items-start gap-1 text-caption text-fg-tertiary">
-            <Lock size={11} aria-hidden className="mt-0.5 shrink-0" />
-            {subject.kind}s like this one are defined by ClarityOS, so the name can’t be changed.
-          </p>
-        ) : undefined}>
-        {(id) => <TextInput id={id} value={value.name} disabled={subject.closed} onChange={(v) => set("name", v)} />}
-      </FieldRow>
-      <FieldRow label="Icon">{(id) => (
-        <StubPicker id={id} swatch={<span aria-hidden className="grid size-4 place-items-center text-fg-tertiary">◇</span>}>Choose icon</StubPicker>
-      )}</FieldRow>
-      <FieldRow label="Color">{(id) => (
-        <StubPicker id={id} swatch={<span aria-hidden className="size-3.5 rounded-[3px] bg-mode-solid" />}>Choose colour</StubPicker>
-      )}</FieldRow>
-      <FieldRow label="Plural name" hint={<Hint>Labels lists and tabs. Blank falls back to the name.</Hint>}>
-        {(id) => <TextInput id={id} value={value.plural} onChange={(v) => set("plural", v)} />}
-      </FieldRow>
-      <FieldRow label="Short name" hint={<Hint>Up to 16 characters. A display alias, never a key.</Hint>}>
-        {(id) => <TextInput id={id} value={value.shortName} onChange={(v) => set("shortName", v)} />}
-      </FieldRow>
-      <FieldRow label="Description">{(id) => <TextInput id={id} area value={value.description} onChange={(v) => set("description", v)} />}</FieldRow>
-      <FieldRow label="Memo">{(id) => <TextInput id={id} area value={value.memo} onChange={(v) => set("memo", v)} />}</FieldRow>
-      {subject.windowTitle && (
-        <FieldRow label="Window title" hint={<Hint>Workspace only. Names the browser window.</Hint>}>
-          {(id) => <TextInput id={id} value={value.windowTitle} onChange={(v) => set("windowTitle", v)} />}
-        </FieldRow>
-      )}
+    <Page label="Identity" count={fields.length} dirty={dirty} notice={subject.notice}>
+      {fields.map((f) => {
+        const s = settings[f.key];
+        const locked = f.key === "member_name" && subject.closed;
+        return (
+          <FieldRow key={f.key} label={s?.label ?? f.label} state={s?.hiddenInModel ? "hidden" : s?.lockedInModel ? "locked" : undefined}
+            hint={locked ? (
+              <p className="mt-1 flex items-start gap-1 text-caption text-fg-tertiary">
+                <Lock size={11} aria-hidden className="mt-0.5 shrink-0" />
+                {subject.kind}s like this one are defined by ClarityOS, so the name can’t be changed.
+              </p>
+            ) : s?.helper ? <Hint>{s.helper}</Hint> : undefined}>
+            {(id) => {
+              if (f.control === "icon") {
+                return <StubPicker id={id} swatch={<span aria-hidden className="grid size-4 place-items-center text-fg-tertiary">◇</span>}>Choose icon</StubPicker>;
+              }
+              if (f.control === "color") {
+                return <StubPicker id={id} swatch={<span aria-hidden className="size-3.5 rounded-[3px] bg-mode-solid" />}>Choose colour</StubPicker>;
+              }
+              const k = f.control;
+              const area = k === "description" || k === "memo";
+              return <TextInput id={id} area={area} value={value[k]} disabled={locked}
+                onChange={(v) => set(k, v)} />;
+            }}
+          </FieldRow>
+        );
+      })}
     </Page>
   );
 }
