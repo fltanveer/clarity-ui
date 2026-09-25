@@ -4,7 +4,8 @@ import {
   Maximize2, Minimize2, Pencil, RefreshCw, Search, Server, Shield, Sliders, Tag, Trash2, Wrench,
   type LucideIcon,
 } from "lucide-react";
-import { DIMENSION_SCHEMA, systemSection, type PropertyFieldDef, type PropertySectionDef } from "../lib/properties";
+import { OPTIONS, type Member } from "../lib/members";
+import { DIMENSION_SCHEMA, choicesOf, schemaSectionsFor, systemSection, withMemberValues, type PropertyFieldDef, type PropertySectionDef } from "../lib/properties";
 import { AssignUnassignSurface } from "../surface/AssignUnassignSurface";
 import { EmptyState } from "../components/EmptyState";
 import { PaneTitle, TitleBand } from "../components/Grid";
@@ -57,6 +58,9 @@ interface Identity { name: string; shortName: string; description: string; memo:
 export interface MemberConfigurationProps {
   name: string;
   structure: string | null;
+  domain?: string | null;
+  /** The member's record: seeds identity and classification values. */
+  member?: Member | null;
   locked: boolean;
   chromeCollapsed: boolean;
   onChromeCollapsed: (c: boolean) => void;
@@ -68,10 +72,10 @@ export interface MemberConfigurationProps {
   fieldRules?: Record<string, { label: string; hiddenInModel: boolean; lockedInModel: boolean }>;
 }
 
-export function MemberConfiguration({ name, structure, locked, chromeCollapsed, onChromeCollapsed, onExit, onDelete, onManageViews, fieldRules }: MemberConfigurationProps) {
+export function MemberConfiguration({ name, structure, domain = null, member, locked, chromeCollapsed, onChromeCollapsed, onExit, onDelete, onManageViews, fieldRules }: MemberConfigurationProps) {
   /* The shell keys this component by member, so a new member re-seeds everything. */
   const [section, setSection] = useState("identity");
-  const seed: Identity = { name, shortName: "", description: "", memo: "" };
+  const seed: Identity = { name, shortName: member?.code ?? "", description: member?.description ?? "", memo: "" };
   const [draft, setDraft] = useState<Identity>(seed);
   const [saved, setSaved] = useState<Identity>(seed);
   const [confirm, setConfirm] = useState(false);
@@ -80,7 +84,7 @@ export function MemberConfiguration({ name, structure, locked, chromeCollapsed, 
   const system = Boolean(schema?.system);
   const cannotDelete = locked || system;
   const dirty = (Object.keys(draft) as (keyof Identity)[]).some((k) => draft[k] !== saved[k]);
-  const schemaSections = schema?.sections ?? [];
+  const schemaSections = withMemberValues(schemaSectionsFor(structure, domain), member?.attrs, OPTIONS);
   const index: Array<{ group: string | null; items: Item[] }> = [
     { group: "Attributes", items: [
       ["identity", "Identity", IdCard],
@@ -258,6 +262,14 @@ function SchemaField({ field: f }: { field: PropertyFieldDef }) {
       </FieldRow>
     );
   }
+  if (f.t === "text") {
+    return (
+      <FieldRow label={f.l} hint={hint}>
+        {(id) => <input id={id} defaultValue={String(f.v ?? "")} disabled={off} autoComplete="off" spellCheck={false}
+          className={cx(controlClass, "h-control-form")} />}
+      </FieldRow>
+    );
+  }
   if (f.t === "read") {
     /* A derived value without its authority is indistinguishable from a typed one. */
     return (
@@ -271,7 +283,7 @@ function SchemaField({ field: f }: { field: PropertyFieldDef }) {
       {(id) => (
         <select id={id} defaultValue={String(f.v)} disabled={off}
           className={cx(controlClass, "h-control-form", off ? "cursor-not-allowed bg-shell-alt text-fg-disabled" : "cursor-pointer")}>
-          <option>{String(f.v)}</option>
+          {choicesOf(f).map((o) => <option key={o}>{o}</option>)}
         </select>
       )}
     </FieldRow>

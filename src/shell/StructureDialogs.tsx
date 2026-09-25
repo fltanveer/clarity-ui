@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from "react";
-import { Boxes, CircleAlert, GitBranch, Layers, Lock, Pencil, Trash2, Users } from "lucide-react";
+import { Boxes, CircleAlert, GitBranch, Layers, Lock, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { controlClass } from "../components/ConfigFields";
 import { ChromeButton } from "./controls";
 import { Dialog, dangerButtonClass } from "./Dialog";
@@ -8,7 +8,7 @@ import { cx } from "../lib/cx";
 /* What a structure is, derived from its name: rollups aggregate, the rest list members. */
 const kindOf = (name: string) => (/rollup/i.test(name) ? "Rollup structure" : "Member list");
 
-const DialogIcon = ({ tone, children }: { tone: "mode" | "danger"; children: React.ReactNode }) => (
+export const DialogIcon = ({ tone, children }: { tone: "mode" | "danger"; children: React.ReactNode }) => (
   <span aria-hidden className={cx("grid size-9 shrink-0 place-items-center rounded-control",
     tone === "mode" ? "bg-mode-soft text-mode-ink" : "bg-danger-soft text-danger-text")}>
     {children}
@@ -168,6 +168,139 @@ export function DeleteStructureDialog({ domain, name, onCancel, onConfirm }: Del
       <p id={hintId} aria-live="polite" className="mt-1 text-caption text-fg-tertiary">
         {matches ? "Name matches. You can delete this structure." : "The delete button unlocks when the name matches exactly."}
       </p>
+    </Dialog>
+  );
+}
+
+export interface DeleteDomainDialogProps {
+  /** What the workspace calls a domain, e.g. "Dimension". */
+  noun: string;
+  workspace: string;
+  name: string;
+  /** Structures inside it; they go with it. */
+  structures: string[];
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+/* Same contract as deleting a structure: consequences first, exact name to unlock. */
+export function DeleteDomainDialog({ noun, workspace, name, structures, onCancel, onConfirm }: DeleteDomainDialogProps) {
+  const inputId = useId();
+  const hintId = useId();
+  const [typed, setTyped] = useState("");
+  const matches = typed.trim() === name;
+  const n = structures.length;
+  const lower = noun.toLowerCase();
+
+  return (
+    <Dialog role="alertdialog" title={`Delete ${name}?`} subtitle={<>{workspace} · this can’t be undone</>}
+      icon={<DialogIcon tone="danger"><Trash2 size={16} /></DialogIcon>}
+      onClose={onCancel} onSubmit={() => { if (matches) onConfirm(); }}
+      footer={
+        <>
+          <ChromeButton onClick={onCancel}>Cancel</ChromeButton>
+          <button type="submit" disabled={!matches} className={dangerButtonClass}>
+            <Trash2 size={13} aria-hidden /> Delete {lower}
+          </button>
+        </>
+      }>
+      <div className="mb-4 rounded-panel border border-line-subtle bg-shell px-3.5 py-3">
+        <p className="mb-2 text-ui font-semibold text-fg-primary">Deleting this {lower} will:</p>
+        <ul className="flex flex-col gap-1.5 text-ui text-fg-secondary">
+          <li className="flex items-start gap-2"><Layers size={14} aria-hidden className="mt-0.5 shrink-0 text-fg-tertiary" />
+            {n ? `Delete its ${n} ${n === 1 ? "structure" : "structures"}: ${structures.join(", ")}` : "Remove it from the domain bar. It has no structures, so nothing else is affected."}
+          </li>
+          {n > 0 && (
+            <li className="flex items-start gap-2"><Users size={14} aria-hidden className="mt-0.5 shrink-0 text-fg-tertiary" /> Delete the members, views and saved layouts in them</li>
+          )}
+        </ul>
+      </div>
+
+      <label htmlFor={inputId} className="mb-1 block text-ui text-fg-secondary">
+        To confirm, type <strong className="font-semibold text-fg-primary select-all">{name}</strong>
+      </label>
+      <input id={inputId} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false}
+        aria-describedby={hintId}
+        className={cx(controlClass, "h-control-form", matches && "border-danger-text hover:border-danger-text")} />
+      <p id={hintId} aria-live="polite" className="mt-1 text-caption text-fg-tertiary">
+        {matches ? `Name matches. You can delete this ${lower}.` : "The delete button unlocks when the name matches exactly."}
+      </p>
+    </Dialog>
+  );
+}
+
+export interface AddDomainDialogProps {
+  /** What the workspace calls a domain, e.g. "Dimension". */
+  noun: string;
+  workspace: string;
+  /** Names already used in this workspace, for the uniqueness check. */
+  existing: string[];
+  onCancel: () => void;
+  onCreate: (next: { name: string; description: string }) => void;
+}
+
+/*
+ * Create a domain. New domains join the end of the domain bar, after the
+ * last zone (for Dimensions: after Picklist), and open empty: structures are
+ * added from the structure bar.
+ */
+export function AddDomainDialog({ noun, workspace, existing, onCancel, onCreate }: AddDomainDialogProps) {
+  const nameId = useId();
+  const errorId = useId();
+  const descId = useId();
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = () => {
+    const next = name.trim();
+    if (!next) { setError(`Enter a name for this ${noun.toLowerCase()}.`); nameRef.current?.focus(); return; }
+    if (existing.some((s) => s.toLowerCase() === next.toLowerCase())) {
+      setError(`${workspace} already has a ${noun.toLowerCase()} called “${next}”. Choose a different name.`);
+      nameRef.current?.focus();
+      return;
+    }
+    onCreate({ name: next, description: desc.trim() });
+  };
+
+  return (
+    <Dialog title={`New ${noun.toLowerCase()}`} subtitle={<>{workspace} · added after the last {noun.toLowerCase()}</>}
+      icon={<DialogIcon tone="mode"><Plus size={16} /></DialogIcon>}
+      onClose={onCancel} onSubmit={submit}
+      footer={
+        <>
+          <ChromeButton onClick={onCancel}>Cancel</ChromeButton>
+          <ChromeButton type="submit" variant="primary" className="h-control-h">Create {noun.toLowerCase()}</ChromeButton>
+        </>
+      }>
+      <div className="flex flex-col gap-4">
+        <div>
+          <label htmlFor={nameId} className="mb-1 block text-caption font-medium text-fg-secondary">Name</label>
+          <input ref={nameRef} id={nameId} value={name} autoFocus autoComplete="off" spellCheck={false}
+            placeholder="e.g. Project"
+            onChange={(e) => { setName(e.target.value); setError(null); }}
+            aria-invalid={error ? "true" : undefined} aria-describedby={error ? errorId : undefined}
+            className={cx(controlClass, "h-control-form", error && "border-danger-text hover:border-danger-text")} />
+          {error && (
+            <p id={errorId} className="mt-1 flex items-start gap-1 text-caption text-danger-text">
+              <CircleAlert size={12} aria-hidden className="mt-0.5 shrink-0" /> {error}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor={descId} className="mb-1 block text-caption font-medium text-fg-secondary">
+            Description <span className="font-normal text-fg-tertiary">(optional)</span>
+          </label>
+          <textarea id={descId} rows={3} value={desc} onChange={(e) => setDesc(e.target.value)}
+            placeholder={`What this ${noun.toLowerCase()} classifies, and who uses it`}
+            className={cx(controlClass, "min-h-20 resize-y py-1.5 leading-body")} />
+        </div>
+        <p className="flex items-start gap-2 rounded-panel border border-line-subtle bg-shell px-3 py-2 text-caption leading-body text-fg-secondary">
+          <Layers size={12} aria-hidden className="mt-0.5 shrink-0 text-fg-tertiary" />
+          It starts with no structures. Add them from the structure bar once it’s created.
+        </p>
+      </div>
     </Dialog>
   );
 }

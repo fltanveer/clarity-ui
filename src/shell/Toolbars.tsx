@@ -18,8 +18,9 @@ import { cx } from "../lib/cx";
  * only where the MODE gate allows it. The collapse control lives here because
  * this bar survives the collapse — the undo is never hidden with what it hid.
  */
-export function ActionToolbar({ canAuthor, onGridMode, chromeCollapsed, onChromeCollapsed }: {
+export function ActionToolbar({ canAuthor, onGridMode, chromeCollapsed, onChromeCollapsed, onAddMember }: {
   canAuthor: boolean;
+  onAddMember?: () => void;
   onGridMode: (m: Exclude<GridMode, null>) => void;
   chromeCollapsed: boolean;
   onChromeCollapsed: (c: boolean) => void;
@@ -28,8 +29,8 @@ export function ActionToolbar({ canAuthor, onGridMode, chromeCollapsed, onChrome
   const ref = useRef<HTMLButtonElement>(null);
   return (
     <div className="on-bar flex h-row-toolbar shrink-0 items-center gap-2 border-b border-mode-ink bg-mode-solid px-edge">
-      {canAuthor && (
-        <ChromeButton variant="bar" className="border-on-bar-edge-strong font-semibold">
+      {canAuthor && onAddMember && (
+        <ChromeButton variant="bar" className="border-on-bar-edge-strong font-semibold" aria-haspopup="dialog" onClick={onAddMember}>
           <Plus size={14} aria-hidden /> Add member
         </ChromeButton>
       )}

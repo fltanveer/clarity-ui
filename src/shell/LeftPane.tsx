@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowLeftRight, ChevronLeft, ChevronRight, Layers, Lock, Plus, Search, X } from "lucide-react";
-import { MEMBERS, type Member, type MemberView } from "../lib/members";
+import type { Member, MemberView } from "../lib/members";
 import { cx } from "../lib/cx";
 import { VIEW_SWITCHER_ANCHOR } from "./ViewSwitcher";
 
@@ -15,12 +15,16 @@ export interface LeftPaneProps {
   peek: string | null;
   structure: string | null;
   view: MemberView;
+  /** The structure's members; the view picks which show. */
+  members: Member[];
   /** The Structure : View chooser in the work area. */
   chooserOpen: boolean;
   onChooser: (open: boolean) => void;
 
   /** Members deleted this session. */
   hidden?: string[];
+  /** Opens the new-member dialog; absent where adding is not possible. */
+  onAddMember?: () => void;
 }
 
 /*
@@ -31,18 +35,18 @@ export interface LeftPaneProps {
  * row carries the bar, because it answers "where am I".
  */
 export function LeftPane({
-  collapsed, width, onCollapsed, canAuthor, member, onMember, peek, structure, view, chooserOpen, onChooser,
-  hidden = [],
+  collapsed, width, onCollapsed, canAuthor, member, onMember, peek, structure, view, members, chooserOpen, onChooser,
+  hidden = [], onAddMember,
 }: LeftPaneProps) {
   const [q, setQ] = useState("");
   const shown = useMemo(
-    () => MEMBERS.filter((m) => view.ids.includes(m.id) && !hidden.includes(m.id))
+    () => members.filter((m) => view.ids.includes(m.id) && !hidden.includes(m.id))
       .filter((m) => m.name.toLowerCase().includes(q.trim().toLowerCase())),
-    [view, q, hidden],
+    [members, view, q, hidden],
   );
 
   if (collapsed) {
-    const name = MEMBERS.find((m) => m.id === member)?.name;
+    const name = members.find((m) => m.id === member)?.name;
     return (
       <aside aria-label="Members (collapsed)" onClick={() => onCollapsed(false)}
         className="flex w-left-rail shrink-0 cursor-pointer flex-col items-center gap-2 overflow-hidden bg-shell-alt pt-1.5">
@@ -82,8 +86,8 @@ export function LeftPane({
             </button>
           )}
         </label>
-        {canAuthor && (
-          <button type="button" aria-label="Add member" title="Add member"
+        {canAuthor && onAddMember && (
+          <button type="button" aria-label="Add member" title="Add member" aria-haspopup="dialog" onClick={onAddMember}
             className="grid size-button shrink-0 cursor-pointer place-items-center rounded-control border border-mode-solid text-mode-ink hover:bg-mode-soft">
             <Plus size={14} aria-hidden />
           </button>
@@ -162,7 +166,11 @@ export function LeftPane({
             );
           })}
         </ul>
-        {!shown.length && <p className="px-6 py-2 text-caption text-fg-tertiary">No members match “{q}”.</p>}
+        {!shown.length && (
+          <p className="px-6 py-2 text-caption text-fg-tertiary">
+            {q.trim() ? `No members match “${q}”.` : structure ? "No members in this view." : "No structures yet."}
+          </p>
+        )}
       </div>
     </aside>
   );

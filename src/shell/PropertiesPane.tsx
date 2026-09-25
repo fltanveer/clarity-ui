@@ -1,12 +1,13 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, FileText, Lock, Trash2 } from "lucide-react";
 import {
-  DIMENSION_SCHEMA, PROPERTY_TABS, sectionsFor,
+  DIMENSION_SCHEMA, PROPERTY_TABS, choicesOf, sectionsFor, withMemberValues,
   type PropertyFieldDef, type PropertySectionDef, type PropertyTab,
 } from "../lib/properties";
 import { ChromeButton } from "./controls";
 import { cx } from "../lib/cx";
 import { ATTACHMENTS, NOTES, initials } from "../lib/records";
+import { OPTIONS, type Member } from "../lib/members";
 
 export interface PropertiesPaneProps {
   open: boolean;
@@ -18,6 +19,8 @@ export interface PropertiesPaneProps {
   /** null = master-list level. */
   memberName: string | null;
   memberLocked: boolean;
+  /** The inspected member's record: seeds identity and classification values. */
+  member?: Member | null;
 }
 
 interface Identity { name: string; shortName: string; description: string; memo: string }
@@ -28,14 +31,15 @@ interface Identity { name: string; shortName: string; description: string; memo:
  * the STRUCTURE; the identity follows the SELECTION. Both re-seed together, so
  * a stale name never sits above new fields.
  */
-export function PropertiesPane({ open, width, onOpen, domain, structure, memberName, memberLocked }: PropertiesPaneProps) {
+export function PropertiesPane({ open, width, onOpen, domain, structure, memberName, memberLocked, member }: PropertiesPaneProps) {
   const master = memberName === null;
   const schema = structure ? DIMENSION_SCHEMA[structure] : undefined;
   const idFields = schema?.identity ?? ["name", "description"];
-  const sections = sectionsFor(master, structure, domain);
+  const sections = withMemberValues(sectionsFor(master, structure, domain), master ? undefined : member?.attrs, OPTIONS);
   const locked = master || memberLocked || Boolean(schema?.system);
 
-  const seed = (): Identity => ({ name: memberName ?? "Master list", shortName: "", description: "", memo: "" });
+  const seed = (): Identity => ({ name: memberName ?? "Master list",
+    shortName: master ? "" : member?.code ?? "", description: master ? "" : member?.description ?? "", memo: "" });
   const [tab, setTab] = useState<PropertyTab>("Properties");
   const [draft, setDraft] = useState<Identity>(seed);
   const [saved, setSaved] = useState<Identity>(seed);
@@ -126,7 +130,7 @@ export function PropertiesPane({ open, width, onOpen, domain, structure, memberN
             {sections.map((s) => (
               <Card key={s.id} id={s.id} label={s.label} meta={s.fields.length ? `${s.fields.length} ${s.fields.length === 1 ? "field" : "fields"}` : "Empty"}
                 open={isOpen(s)} onToggle={() => setOpenSec((p) => ({ ...p, [s.id]: !isOpen(s) }))}>
-                {s.fields.map((f) => <PropertyField key={f.l} field={f} />)}
+                {s.fields.map((f) => <PropertyField key={`${memberName}:${f.l}`} field={f} />)}
                 {!s.fields.length && (
                   <p className="text-caption leading-body text-fg-tertiary">No settings defined for this structure yet.</p>
                 )}
@@ -192,8 +196,8 @@ export function PropertiesPane({ open, width, onOpen, domain, structure, memberN
   );
 }
 
-const inputClass = "w-full rounded-control border border-line-control bg-surface px-2.5 text-ui text-fg-primary outline-none hover:border-line-control-hover";
-const labelClass = "mb-1 block text-caption font-medium text-fg-secondary";
+export const inputClass = "w-full rounded-control border border-line-control bg-surface px-2.5 text-ui text-fg-primary outline-none hover:border-line-control-hover";
+export const labelClass = "mb-1 block text-caption font-medium text-fg-secondary";
 
 function EditField({ label, value, onChange, area }: { label: string; value: string; onChange: (v: string) => void; area?: boolean }) {
   const id = useId();
@@ -208,10 +212,12 @@ function EditField({ label, value, onChange, area }: { label: string; value: str
 }
 
 /* Collapsible card sized for the pane: collapsed = tinted header (reads as a card on the shell); expanded = all white. */
-function Card({ id, label, meta, open, onToggle, children }: {
+/* Collapsible property card; also used by dialogs that edit the same fields (New member). */
+export function Card({ label, meta, open, onToggle, children }: {
   id: string; label: string; meta: string; open: boolean; onToggle: () => void; children: ReactNode;
 }) {
-  const panelId = `prop-sec-${id}`;
+  /* Unique per instance: a dialog can show the same section while this pane is open. */
+  const panelId = useId();
   return (
     <section className="shrink-0 overflow-hidden rounded-panel border border-line-subtle bg-surface">
       <h3>
@@ -258,6 +264,15 @@ function PropertyField({ field: f }: { field: PropertyFieldDef }) {
       </div>
     );
   }
+  if (f.t === "text") {
+    return (
+      <div>
+        <label htmlFor={id} className={labelClass}>{f.l}</label>
+        <input id={id} defaultValue={String(f.v ?? "")} disabled={off} autoComplete="off" spellCheck={false}
+          className={cx(inputClass, "h-control-form", off && "cursor-not-allowed bg-shell-alt text-fg-disabled")} />
+      </div>
+    );
+  }
   if (f.t === "read") {
     return (
       <div>
@@ -273,7 +288,7 @@ function PropertyField({ field: f }: { field: PropertyFieldDef }) {
       <div className="relative">
         <select id={id} defaultValue={String(f.v)} disabled={off} aria-describedby={hint ? `${id}-hint` : undefined}
           className={cx(inputClass, "h-control-form appearance-none truncate pe-8", off ? "cursor-not-allowed bg-shell-alt text-fg-disabled" : "cursor-pointer")}>
-          <option>{String(f.v)}</option>
+          {choicesOf(f).map((o) => <option key={o}>{o}</option>)}
         </select>
         <ChevronDown size={14} aria-hidden className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary" />
       </div>

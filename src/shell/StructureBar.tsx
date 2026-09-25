@@ -1,7 +1,8 @@
-import { useRef, useState, type KeyboardEvent } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Lock, Menu, Pencil, Plus, Trash2 } from "lucide-react";
+import { Fragment, useRef, useState, type KeyboardEvent } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, CornerDownRight, Lock, Menu, Pencil, Plus, Trash2 } from "lucide-react";
 import {
-  BOTTOM_TABS, CLOSED_DOMAINS, NON_DELETABLE_STRUCTURES, isAddToken, isPipe, plusLabel, type WorkspaceId,
+  BOTTOM_TABS, CLOSED_DOMAINS, NON_DELETABLE_STRUCTURES, SECTIONED_DOMAINS, SECTION_LABEL, SECTION_ORDER,
+  isAddToken, isPipe, plusLabel, sectionOf, type StructureSection, type WorkspaceId,
 } from "../lib/nav";
 import { MenuDivider, MenuItem, Popover } from "./Popover";
 import { DeleteStructureDialog, EditStructureDialog } from "./StructureDialogs";
@@ -35,8 +36,14 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
   const items = raw.filter((t) => !isAddToken(t) && (isPipe(t) || !removed.includes(key(t))))
     /* Drop pipes left dangling at either end or doubled up by a deletion. */
     .filter((t, i, a) => !isPipe(t) || (i > 0 && i < a.length - 1 && !isPipe(a[i - 1])));
-  const tabs = items.filter((t) => !isPipe(t));
-  const hasAdd = raw.some(isAddToken);
+  /* Sectioned domains group by role; the rest keep their '|' zones. Tab order follows what is shown. */
+  const sections = domain && SECTIONED_DOMAINS.has(domain)
+    ? SECTION_ORDER.map((kind) => ({ kind, tabs: items.filter((t) => !isPipe(t) && sectionOf(domain, t) === kind) }))
+        .filter((sec) => sec.tabs.length)
+    : null;
+  const tabs = sections ? sections.flatMap((sec) => sec.tabs) : items.filter((t) => !isPipe(t));
+  /* A domain with no structures yet (just created) can always add its first. */
+  const hasAdd = raw.some(isAddToken) || raw.length === 0;
   const addLabel = plusLabel(workspace, domain);
   const stripRef = useRef<HTMLDivElement>(null);
   const [allOpen, setAllOpen] = useState(false);
@@ -44,6 +51,12 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
   const [confirm, setConfirm] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const closed = domain ? CLOSED_DOMAINS.has(domain) : false;
+
+  const tab = (t: string, sectionId?: string) => (
+    <StructureTab key={t} name={t} label={labelOf(t)} on={t === structure} onSelect={() => onStructure(t)}
+      system={NON_DELETABLE_STRUCTURES.has(key(t))} canAuthor={canAuthor} sectionId={sectionId}
+      onEdit={() => (l100 ? onConfigure(labelOf(t)) : setEditing(t))} onDelete={() => setConfirm(t)} />
+  );
 
   const scroll = (dir: number) => stripRef.current?.scrollBy({ left: dir * 180, behavior: "smooth" });
   const onKeyDown = (e: KeyboardEvent) => {
@@ -76,8 +89,18 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
           <Menu size={14} aria-hidden />
         </button>
         <Popover anchorRef={allRef} open={allOpen} onClose={() => setAllOpen(false)} placement="top-start" label="All structures" className="min-w-48 py-1">
-          {tabs.length ? tabs.map((t) => (
-            <MenuItem key={t} checked={t === structure} onSelect={() => { onStructure(t); setAllOpen(false); }}>{labelOf(t)}</MenuItem>
+          {tabs.length ? (sections ?? [{ kind: null as StructureSection | null, tabs }]).map((sec, i) => (
+            <Fragment key={sec.kind ?? "all"}>
+              {i > 0 && <MenuDivider />}
+              {sec.kind && (
+                <p className="flex items-center gap-1 px-3 pt-1.5 pb-0.5 text-micro font-semibold tracking-label text-fg-tertiary uppercase">
+                  {sec.kind === "child" && <CornerDownRight size={10} aria-hidden />}{SECTION_LABEL[sec.kind]}
+                </p>
+              )}
+              {sec.tabs.map((t) => (
+                <MenuItem key={t} checked={t === structure} onSelect={() => { onStructure(t); setAllOpen(false); }}>{labelOf(t)}</MenuItem>
+              ))}
+            </Fragment>
           )) : <p className="px-3 py-1.5 text-caption text-fg-tertiary">No structures defined</p>}
         </Popover>
       </div>
@@ -86,11 +109,13 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
         className="no-scrollbar flex h-full min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto">
         {tabs.length === 0 ? (
           <span className="ps-tab-inset text-caption text-fg-tertiary">No structures defined for this domain</span>
-        ) : items.map((t, i) => isPipe(t)
-          ? <Pipe key={`p${i}`} className="mx-1" />
-          : <StructureTab key={t} name={t} label={labelOf(t)} on={t === structure} onSelect={() => onStructure(t)}
-              system={NON_DELETABLE_STRUCTURES.has(key(t))} canAuthor={canAuthor}
-              onEdit={() => (l100 ? onConfigure(labelOf(t)) : setEditing(t))} onDelete={() => setConfirm(t)} />)}
+        ) : sections ? sections.map((sec, i) => (
+          <Fragment key={sec.kind}>
+            {i > 0 && <Pipe className="mx-1.5 self-center" />}
+            <SectionLabel kind={sec.kind} id={`structure-section-${sec.kind}`} />
+            {sec.tabs.map((t) => tab(t, `structure-section-${sec.kind}`))}
+          </Fragment>
+        )) : items.map((t, i) => isPipe(t) ? <Pipe key={`p${i}`} className="mx-1" /> : tab(t))}
       </div>
 
       <div className="flex shrink-0 gap-0.5">
@@ -129,9 +154,27 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
   );
 }
 
-function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, onDelete }: {
+/*
+ * Section eyebrow: names what the following tabs are. A child section hangs
+ * off the parents with a ↳ so it reads as belonging to them, not beside them.
+ * Tabs point at it with aria-describedby, so the role is announced too.
+ */
+function SectionLabel({ kind, id }: { kind: StructureSection; id: string }) {
+  return (
+    <span id={id} className={cx(
+      "flex shrink-0 items-center gap-1 self-center rounded-chip px-1.5 py-0.5 text-micro font-semibold tracking-label whitespace-nowrap uppercase",
+      kind === "child" ? "bg-surface text-fg-secondary ring-1 ring-line-subtle" : "text-fg-tertiary",
+    )}>
+      {kind === "child" && <CornerDownRight size={10} aria-hidden />}
+      {SECTION_LABEL[kind]}
+      <span className="sr-only"> structures</span>
+    </span>
+  );
+}
+
+function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, onDelete, sectionId }: {
   name: string; label: string; on: boolean; onSelect: () => void; system: boolean;
-  canAuthor: boolean; onEdit: () => void; onDelete: () => void;
+  canAuthor: boolean; onEdit: () => void; onDelete: () => void; sectionId?: string;
 }) {
   const [menu, setMenu] = useState(false);
   const caretRef = useRef<HTMLButtonElement>(null);
@@ -144,6 +187,7 @@ function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, on
     <span className="caret-host relative flex h-full shrink-0 items-stretch"
       onContextMenu={(e) => { if (showCaret) { e.preventDefault(); setMenu(true); } }}>
       <button id={`structure-tab-${name}`} type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1}
+        aria-describedby={sectionId}
         onClick={onSelect}
         className={cx(
           "flex h-full cursor-pointer items-center gap-1.5 border-b-2 ps-3 text-caption whitespace-nowrap",

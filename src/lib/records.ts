@@ -3,13 +3,13 @@ export interface NoteRecord { title: string; body: string; by: string; on: strin
 export interface AttachmentRecord { name: string; size: string; by: string; on: string }
 
 export const NOTES: NoteRecord[] = [
-  { title: "Reclassified for FY26", body: "Moved under the operating segment for FY26 reporting.", by: "J. Davidson", on: "04 Aug 2026" },
-  { title: "Opening balance agreed", body: "Opening balance agreed to bank confirmation.", by: "M. Cowen", on: "21 Jul 2026" },
+  { title: "Reclassified for FY26", body: "Moved under the operating segment for FY26 reporting.", by: "Penny Ledger", on: "04 Aug 2026" },
+  { title: "Opening balance agreed", body: "Opening balance agreed to bank confirmation.", by: "Cash King", on: "21 Jul 2026" },
 ];
 
 export const ATTACHMENTS: AttachmentRecord[] = [
-  { name: "Bank_reconciliation_Jul26.pdf", size: "214 KB", by: "M. Cowen", on: "21 Jul 2026" },
-  { name: "Opening_balance_support.xlsx", size: "38 KB", by: "J. Davidson", on: "04 Aug 2026" },
+  { name: "Bank_reconciliation_Jul26.pdf", size: "214 KB", by: "Cash King", on: "21 Jul 2026" },
+  { name: "Opening_balance_support.xlsx", size: "38 KB", by: "Penny Ledger", on: "04 Aug 2026" },
 ];
 
 export const initials = (name: string) =>

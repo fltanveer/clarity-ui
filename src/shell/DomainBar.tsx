@@ -1,10 +1,11 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { BarChart3, ChevronDown, Menu, Pencil, ShieldAlert, Trash2, X } from "lucide-react";
-import { CLOSED_DOMAINS, TOP_TABS, isAddToken, isPipe, type WorkspaceId } from "../lib/nav";
+import { BOTTOM_TABS, CLOSED_DOMAINS, TOP_TABS, isAddToken, isPipe, workspaceLabel, type WorkspaceId } from "../lib/nav";
 import type { Mode } from "./types";
 import { MenuDivider, MenuItem, Popover } from "./Popover";
 import { Pipe } from "./controls";
 import { cx } from "../lib/cx";
+import { AddDomainDialog, DeleteDomainDialog } from "./StructureDialogs";
 
 export interface DomainBarProps {
   workspace: WorkspaceId;
@@ -18,6 +19,12 @@ export interface DomainBarProps {
   onConfigure: (domain: string) => void;
   /** data_only users: the MODE toggle is absent from the DOM (Spec 110 §7.4). */
   dataOnly?: boolean;
+  /** Domains created this session, shown after the workspace's own. */
+  added?: string[];
+  onAdd?: (name: string) => void;
+  /** Domains deleted this session: never shown. */
+  removed?: string[];
+  onRemove?: (name: string) => void;
 }
 
 /*
@@ -25,10 +32,16 @@ export interface DomainBarProps {
  * [+ Add · ☰] sit outside the scrollport so complete access survives any
  * scroll position (CLA-611). Ctrl+PgUp / Ctrl+PgDn switch tabs (Excel parity).
  */
-export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL100, onConfigure, dataOnly }: DomainBarProps) {
+export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL100, onConfigure, dataOnly, added = [], onAdd, removed = [], onRemove }: DomainBarProps) {
   const raw = TOP_TABS[workspace] ?? [];
   const addToken = raw.find(isAddToken);
-  const items = raw.filter((t) => !isAddToken(t));
+  /* New domains join the end, after the last zone's pipe (Dimensions: after Picklist). */
+  const items = [...raw.filter((t) => !isAddToken(t)), ...added].filter((t) => !removed.includes(t))
+    /* Drop pipes left dangling or doubled by a deletion; a trailing pipe stays as the add zone's edge. */
+    .filter((t, i, a) => !isPipe(t) || (i > 0 && !isPipe(a[i - 1])));
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const noun = addToken?.replace(/^\+\s*Add\s*/, "") || "Domain";
   const tabs = items.filter((t) => !isPipe(t));
   const canAuthor = mode === "MODEL" || l100;
   const [allOpen, setAllOpen] = useState(false);
@@ -51,7 +64,8 @@ export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL
     <div className="flex h-row-domain shrink-0 items-stretch gap-0.5 border-b-2 border-mode-solid bg-shell ps-[calc(var(--spacing-edge)-var(--spacing-tab-inset))] pe-edge">
       <div className="me-1.5 flex shrink-0 items-center gap-0.5 self-center">
         {addToken && canAuthor && (
-          <button type="button" className="h-[1.375rem] cursor-pointer rounded-control px-2 text-caption font-medium whitespace-nowrap text-fg-secondary hover:bg-hover">
+          <button type="button" onClick={() => setAdding(true)} aria-haspopup="dialog"
+            className="h-[1.375rem] cursor-pointer rounded-control px-2 text-caption font-medium whitespace-nowrap text-fg-secondary hover:bg-hover">
             {addToken}
           </button>
         )}
@@ -75,8 +89,26 @@ export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL
         ) : items.map((t, i) => isPipe(t)
           ? <Pipe key={`p${i}`} className="mx-1.5" />
           : <DomainTab key={t} name={t} on={t === domain} onSelect={() => onDomain(t)} canEdit={canAuthor}
-              system={CLOSED_DOMAINS.has(t)} onConfigure={() => onConfigure(t)} />)}
+              system={CLOSED_DOMAINS.has(t)} onConfigure={() => onConfigure(t)} onDelete={() => setDeleting(t)} />)}
       </div>
+
+      {adding && (
+        <AddDomainDialog noun={noun} workspace={workspaceLabel(workspace)} existing={tabs}
+          onCancel={() => setAdding(false)}
+          onCreate={({ name }) => { setAdding(false); onAdd?.(name); onDomain(name); }} />
+      )}
+
+      {deleting && (
+        <DeleteDomainDialog noun={noun} workspace={workspaceLabel(workspace)} name={deleting}
+          structures={(BOTTOM_TABS[deleting] ?? []).filter((t) => !isPipe(t) && !isAddToken(t))}
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            const left = tabs.filter((t) => t !== deleting);
+            setDeleting(null);
+            onRemove?.(deleting);
+            if (deleting === domain && left[0]) onDomain(left[0]);
+          }} />
+      )}
 
       <div className="ms-auto flex shrink-0 items-center gap-2.5 ps-3">
         {l100 ? <L100Chip onExit={() => onL100(false)} />
@@ -86,8 +118,8 @@ export function DomainBar({ workspace, domain, onDomain, mode, onMode, l100, onL
   );
 }
 
-function DomainTab({ name, on, onSelect, canEdit, system, onConfigure }: {
-  name: string; on: boolean; onSelect: () => void; canEdit: boolean; system: boolean; onConfigure: () => void;
+function DomainTab({ name, on, onSelect, canEdit, system, onConfigure, onDelete }: {
+  name: string; on: boolean; onSelect: () => void; canEdit: boolean; system: boolean; onConfigure: () => void; onDelete: () => void;
 }) {
   const [menu, setMenu] = useState(false);
   const caretRef = useRef<HTMLButtonElement>(null);
@@ -117,7 +149,7 @@ function DomainTab({ name, on, onSelect, canEdit, system, onConfigure }: {
       <Popover anchorRef={caretRef} open={menu} onClose={() => setMenu(false)} label={`${name} options`} className="min-w-37 py-1">
         <MenuItem onSelect={() => { setMenu(false); onConfigure(); }}><Pencil size={13} aria-hidden /> Edit</MenuItem>
         <MenuDivider />
-        <MenuItem tone="danger" disabled={system} onSelect={() => setMenu(false)}>
+        <MenuItem tone="danger" disabled={system} onSelect={() => { setMenu(false); onDelete(); }}>
           <Trash2 size={13} aria-hidden /> Delete{system && <span className="ms-auto text-caption">closed domain</span>}
         </MenuItem>
       </Popover>

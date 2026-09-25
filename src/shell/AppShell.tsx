@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MEMBERS, defaultViews, memberById, type MemberView } from "../lib/members";
+import { defaultViews, memberById as fixtureById, membersFor, resolveView, type Member, type MemberView } from "../lib/members";
+import { AddMemberDialog } from "./AddMemberDialog";
 import { BOTTOM_TABS, CLOSED_DOMAINS, TOP_TABS, WORKSPACE_ICON, firstDomain, firstStructure, isAddToken, isPipe, workspaceLabel, type WorkspaceId } from "../lib/nav";
 import { Boxes, Layers } from "lucide-react";
 import { Rail } from "./Rail";
@@ -111,6 +112,9 @@ export function AppShell() {
      hidden here is absent there, and what is locked here is read-only there. */
   const [fieldRules, setFieldRules] = useState<Record<string, Record<string, FieldSettingsValue>>>({});
   const [workspace, setWorkspace] = useState<WorkspaceId>("dimensions");
+  /* Domains created this session, per workspace; they follow the workspace's own. */
+  const [addedDomains, setAddedDomains] = useState<Record<string, string[]>>({});
+  const [removedDomains, setRemovedDomains] = useState<Record<string, string[]>>({});
   const [domain, setDomain] = useState<string | null>(firstDomain("dimensions"));
   const [structure, setStructure] = useState<string | null>(firstStructure(firstDomain("dimensions")));
   const [railExpanded, setRailExpanded] = useState(() => window.innerWidth >= NARROW);
@@ -148,8 +152,12 @@ export function AppShell() {
   /* Reorder is STAGED: order can be load-bearing (allocation sequence), so it
      never changes on a stray drag. Cancel discards; Save commits. */
   const [order, setOrder] = useState<string[] | null>(null);
-  const [committedOrder, setCommittedOrder] = useState<string[]>(MEMBERS.map((m) => m.id));
+  /* Committed order per structure; unset means the structure's own order. */
+  const [orderBy, setOrderBy] = useState<Record<string, string[]>>({});
   const [deleted, setDeleted] = useState<string[]>([]);
+  /* Members created this session, keyed Domain:Structure. */
+  const [addedMembers, setAddedMembers] = useState<Record<string, Member[]>>({});
+  const [adding, setAdding] = useState(false);
 
   const canAuthor = mode === "MODEL" || l100;
   const exitGridMode = useCallback(() => { setGridMode(null); setBulkSel([]); setOrder(null); }, []);
@@ -219,10 +227,18 @@ export function AppShell() {
     return () => document.removeEventListener("keydown", onKey);
   });
 
-  /* A structure change always lands on its Master list. */
-  useEffect(() => { setViewId("master"); }, [structure]);
-  const views = viewsBy[structure ?? ""] ?? defaultViews(structure);
-  const setViews = (next: MemberView[]) => setViewsBy((m) => ({ ...m, [structure ?? ""]: next }));
+  /* A structure change always lands on its Master list; members belong to one structure, so selection clears. */
+  useEffect(() => { setViewId("master"); setMember(null); setPeek(null); }, [domain, structure]);
+  const members = useMemo(() => [...membersFor(domain, structure), ...(addedMembers[`${domain}:${structure}`] ?? [])],
+    [domain, structure, addedMembers]);
+  /* Session-created members first, then the fixtures. */
+  const memberById = (id: string | null) =>
+    Object.values(addedMembers).flat().find((m) => m.id === id) ?? fixtureById(id);
+  const liveMembers = members.filter((m) => !deleted.includes(m.id));
+  const orderKey = `${domain}:${structure}`;
+  const committedOrder = orderBy[orderKey] ?? members.map((m) => m.id);
+  const views = viewsBy[orderKey] ?? defaultViews(domain, structure);
+  const setViews = (next: MemberView[]) => setViewsBy((m) => ({ ...m, [orderKey]: next }));
   const view = views.find((v) => v.id === viewId) ?? views[0];
   const baseRows = useMemo(() => {
     const ids = order ?? committedOrder;
@@ -244,17 +260,19 @@ export function AppShell() {
     requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-grip="${ids[j]}"]`)?.focus());
   };
 
-  const isDimensions = workspace === "dimensions";
+  /* Member workspaces: every Dimensions domain, and Security's User and Role, share one layout
+     (members · grid · properties, member configuration in MODEL). */
+  const hasMembers = workspace === "dimensions" || (workspace === "security" && (domain === "User" || domain === "Role"));
   /* MODEL + member selected → member configuration (CH-002), no far-right pane. */
-  const memberMode = isDimensions && mode === "MODEL" && member !== null;
+  const memberMode = hasMembers && mode === "MODEL" && member !== null;
   /* L100 · a member of a structure is a Model, so picking one configures that Model. */
-  const modelMode = isDimensions && l100 && member !== null && structure !== null;
+  const modelMode = hasMembers && l100 && member !== null && structure !== null;
   /* MODEL master list has no properties pane: it could only restate the name. */
-  const showProperties = isDimensions && !memberMode && !modelMode && !(mode === "MODEL" && member === null);
+  const showProperties = hasMembers && !memberMode && !modelMode && !(mode === "MODEL" && member === null);
   const memberName = memberById(peek ?? member)?.name ?? null;
   /* A pane can only grow into space the grid does not need. */
   const rightTaken = showProperties ? (rightOpen ? rightWidth : RIGHT_RAIL) : 0;
-  const leftTaken = isDimensions ? (leftCollapsed ? LEFT_RAIL : leftWidth) : 0;
+  const leftTaken = hasMembers ? (leftCollapsed ? LEFT_RAIL : leftWidth) : 0;
   const leftMax = mainWidth ? Math.max(LEFT.min, Math.min(LEFT.max, mainWidth - CENTRE_MIN - rightTaken)) : LEFT.max;
   const rightMax = mainWidth ? Math.max(RIGHT.min, Math.min(RIGHT.max, mainWidth - CENTRE_MIN - leftTaken)) : RIGHT.max;
   const leftShown = Math.min(leftWidth, leftMax);
@@ -276,20 +294,32 @@ export function AppShell() {
               memberName={memberById(member)?.name ?? null} l100={l100} />
             <DomainBar workspace={workspace} domain={domain} onDomain={changeDomain}
               mode={mode} onMode={changeMode} l100={l100} onL100={changeL100}
-              onConfigure={(d) => setConfig(domainSubject(workspace, d))} />
+              onConfigure={(d) => setConfig(domainSubject(workspace, d))}
+              added={addedDomains[workspace]}
+              onAdd={(d) => {
+                setAddedDomains((a) => ({ ...a, [workspace]: [...(a[workspace] ?? []), d] }));
+                setRemovedDomains((r) => ({ ...r, [workspace]: (r[workspace] ?? []).filter((x) => x !== d) }));
+              }}
+              removed={removedDomains[workspace]}
+              onRemove={(d) => {
+                /* A domain made this session simply goes; a built-in one is hidden. */
+                setAddedDomains((a) => ({ ...a, [workspace]: (a[workspace] ?? []).filter((x) => x !== d) }));
+                if (!(addedDomains[workspace] ?? []).includes(d)) setRemovedDomains((r) => ({ ...r, [workspace]: [...(r[workspace] ?? []), d] }));
+              }} />
           </>
         )}
 
         {/* Never scrolls sideways: pane widths are clamped to leave the grid CENTRE_MIN, and the grid
             narrows below that only when the window cannot fit the panes' own minimums. */}
         <main ref={mainRef} className="flex min-h-0 flex-1 overflow-hidden bg-canvas">
-          {isDimensions && (
+          {hasMembers && (
             <LeftPane collapsed={leftCollapsed} width={leftShown} onCollapsed={setLeftCollapsed} canAuthor={canAuthor}
               member={member} onMember={(id) => { setMember(id); setPeek(null); }} peek={peek}
-              structure={structure} view={view} hidden={deleted}
+              structure={structure} view={view} members={members} hidden={deleted}
+              onAddMember={structure ? () => setAdding(true) : undefined}
               chooserOpen={chooserOpen} onChooser={(o) => { setChooserOpen(o); if (o) exitGridMode(); }} />
           )}
-          {isDimensions && !leftCollapsed && (
+          {hasMembers && !leftCollapsed && (
             <Splitter label="Resize members pane" side="start" value={leftShown}
               min={LEFT.min} max={leftMax} defaultValue={LEFT.def} onChange={setLeftWidth} />
           )}
@@ -305,7 +335,8 @@ export function AppShell() {
               settings={fieldRules[structure!] ?? seedFieldSettings(identityFieldsFor(modelSubject(structure!, "")))}
               onSettings={(next) => setFieldRules((r) => ({ ...r, [structure!]: next }))} />
           ) : memberMode ? (
-            <MemberConfiguration key={member} name={memberById(member)!.name} structure={structure}
+            <MemberConfiguration key={member} name={memberById(member)!.name} structure={structure} domain={domain}
+              member={memberById(member)}
               locked={Boolean(memberById(member)?.locked)}
               chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed}
               onExit={() => setMember(null)}
@@ -317,12 +348,13 @@ export function AppShell() {
               {gridMode ? (
                 <GridModeBar kind={gridMode} count={bulkSel.length} onCancel={exitGridMode}
                   onSave={() => {
-                    if (gridMode === "reorder" && order) setCommittedOrder(order);
+                    if (gridMode === "reorder" && order) setOrderBy((o) => ({ ...o, [orderKey]: order }));
                     if (gridMode === "delete") setDeleted((d) => [...d, ...bulkSel]);
                     exitGridMode();
                   }} />
               ) : (
                 <ActionToolbar canAuthor={canAuthor} onGridMode={setGridMode}
+                  onAddMember={hasMembers && structure ? () => setAdding(true) : undefined}
                   chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed} />
               )}
               <div className="flex min-h-0 flex-1 flex-col">
@@ -333,7 +365,7 @@ export function AppShell() {
                 {/* Point of view is a DATA context: which report, company, version you are reading.
                     Authoring a model has no point of view, so the bar goes with the mode. */}
                 {mode === "DATA" && !l100 && <PovBar />}
-                {isDimensions ? (
+                {hasMembers ? (
                   <MemberGrid members={baseRows} columns={columns.visible} display={display}
                     member={member} peek={peek} onPeek={setPeek}
                     gridMode={gridMode} bulkSel={bulkSel} onBulkSel={setBulkSel} onMove={moveRow}
@@ -343,19 +375,21 @@ export function AppShell() {
                       if (mode === "MODEL") { setMember(id); setPeek(null); setChooserOpen(false); }
                       else { setPeek(id); setRightOpen(true); }
                     }}
-                    emptyMessage={gridQuery ? `No members match “${gridQuery}”.` : undefined} />
+                    emptyMessage={gridQuery ? `No members match “${gridQuery}”.`
+                      : structure === null ? `${domain ?? "This domain"} has no structures yet. Add one from the structure bar to start listing members.`
+                      : undefined} />
                 ) : (
                   <WorkspaceStub name={workspaceLabel(workspace)} />
                 )}
               </div>
             </section>
           )}
-          {isDimensions && (
+          {hasMembers && (
             <ViewSwitcher open={chooserOpen} onClose={() => setChooserOpen(false)}
               structure={structure} structureTokens={domain ? BOTTOM_TABS[domain] ?? [] : []}
               onStructure={(st) => { setStructure(st); setPeek(null); }}
               views={views} activeId={view.id} onActivate={(id) => { setViewId(id); setPeek(null); }}
-              memberIds={MEMBERS.filter((m) => !deleted.includes(m.id)).map((m) => m.id)}
+              memberIds={liveMembers.map((m) => m.id)}
               canManage={canAuthor} onManage={() => { setChooserOpen(false); setManageOpen(true); }} />
           )}
           </div>
@@ -366,16 +400,36 @@ export function AppShell() {
           )}
           {showProperties && (
             <PropertiesPane open={rightOpen} width={rightShown} onOpen={setRightOpen} domain={domain} structure={structure}
-              memberName={memberName} memberLocked={Boolean(memberById(peek ?? member)?.locked)} />
+              memberName={memberName} memberLocked={Boolean(memberById(peek ?? member)?.locked)}
+              member={memberById(peek ?? member)} />
           )}
         </main>
 
-        {isDimensions && manageOpen && (
+        {hasMembers && manageOpen && (
           <ViewManagerDialog key={structure ?? ""} structure={structure}
             structureTokens={domain ? BOTTOM_TABS[domain] ?? [] : []} onStructure={(st) => { setStructure(st); setPeek(null); }}
-            members={MEMBERS.filter((m) => !deleted.includes(m.id))}
+            members={liveMembers}
             views={views} onViews={setViews} activeId={view.id} canAuthor={canAuthor}
             onActivate={(id) => { setViewId(id); setPeek(null); }} onClose={() => setManageOpen(false)} />
+        )}
+
+        {adding && domain && structure && (
+          <AddMemberDialog domain={domain} structure={structure} existing={liveMembers.map((m) => m.name)}
+            fieldRules={l100 ? undefined : fieldRules[structure]}
+            onCancel={() => setAdding(false)}
+            onCreate={(n) => {
+              const m: Member = { id: `new-${crypto.randomUUID()}`, name: n.name, code: n.shortName || "—", type: "Standard",
+                locked: false, description: n.description, ...(Object.keys(n.attrs).length ? { attrs: n.attrs } : null) };
+              const all = [...members, m];
+              setAddedMembers((a) => ({ ...a, [orderKey]: [...(a[orderKey] ?? []), m] }));
+              /* The new member joins the master list and any rule view it matches; static lists are picked by hand. */
+              setViews(views.map((v) => v.id === "master" ? { ...v, ids: [...v.ids, m.id] }
+                : v.kind === "rule" && v.rules?.length ? { ...v, ids: resolveView(v, all) } : v));
+              if (orderBy[orderKey]) setOrderBy((o) => ({ ...o, [orderKey]: [...o[orderKey], m.id] }));
+              setAdding(false);
+              /* Land on it: MODEL opens its configuration, DATA inspects it in Properties. */
+              if (mode === "MODEL" && !l100) setMember(m.id); else setPeek(m.id);
+            }} />
         )}
 
         {config && <ContainerConfigDialog subject={config} onClose={() => setConfig(null)} />}
@@ -383,7 +437,7 @@ export function AppShell() {
         <StructureBar workspace={workspace} domain={domain} structure={structure} onStructure={setStructure}
           canAuthor={canAuthor} l100={l100}
           onConfigure={(st) => domain && setConfig(structureSubject(domain, st,
-            MEMBERS.filter((m) => !deleted.includes(m.id)).map((m) => m.name)))} />
+            liveMembers.map((m) => m.name)))} />
         <Footer />
       </div>
     </div>

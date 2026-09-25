@@ -62,7 +62,7 @@ export const BOTTOM_TABS: Record<string, string[]> = {
   Ledger: ["Ledger Summary", "Ledger Transactions"],
   Adjustment: ["Adjustment Journals", "Reclassifications", "Top-Down Allocations", "|", "FX Translation", "OCI / CTA", "Derivatives", "|", "Retained Earnings"],
   Consolidation: ["Consolidation Factor", "|", "Intercompany", "Investment Elimination", "|", "NCI", "Consolidation Goodwill"],
-  Company: ["Companies", "IC Elimination Groups", "+", "|", "Custom Rollups"],
+  Company: ["Companies", "IC Elimination Groups", "Company Regions", "+", "|", "Custom Rollups"],
   Revenue: ["Revenues", "+"],
   Cost: ["Costs", "WIP", "Inventory"],
   Expense: ["Opex", "Prepaid", "Accruals", "+"],
@@ -90,6 +90,34 @@ export const BOTTOM_TABS: Record<string, string[]> = {
   Export: ["Financial Activities", "Operational Assumptions", "Lookup Tables", "|", "Dimensions"],
   Setting: ["System Settings"],
 };
+
+/*
+ * Structure sections (Row 5). Where a domain declares them, its structures
+ * group as: PARENT (member instances) · CHILD (classification values that
+ * describe a parent, e.g. regions of companies) · ROLLUPS (custom groupings).
+ * Declared per structure, so deleting one never shifts the rest into the
+ * wrong section. Undeclared domains keep their '|' zones.
+ */
+export type StructureSection = "parent" | "child" | "rollup";
+export const SECTIONED_DOMAINS = new Set(["Company", "Business Area", "Product & Service"]);
+/*
+ * Child structures, keyed Domain:Structure. A child classifies its parent: each
+ * one adds a dropdown (field) to the parent's Classification, after the
+ * parent's own fields, in structure-bar order. More children join here.
+ */
+export const CHILD_STRUCTURES: Record<string, { parent: string; field: string }> = {
+  "Company:Company Regions": { parent: "Companies", field: "Company Region" },
+};
+/** The children of a parent structure, in tab order. */
+export const childrenOf = (domain: string, parent: string) =>
+  (BOTTOM_TABS[domain] ?? []).flatMap((t) => {
+    const c = CHILD_STRUCTURES[`${domain}:${t}`];
+    return c && c.parent === parent ? [{ structure: t, field: c.field }] : [];
+  });
+export const SECTION_ORDER: StructureSection[] = ["parent", "child", "rollup"];
+export const SECTION_LABEL: Record<StructureSection, string> = { parent: "Parent", child: "Child", rollup: "Rollups" };
+export const sectionOf = (domain: string, structure: string): StructureSection =>
+  structure === "Custom Rollups" ? "rollup" : `${domain}:${structure}` in CHILD_STRUCTURES ? "child" : "parent";
 
 /* 'Must exist, cannot be deleted' — rename stays open. Keyed Domain:Structure. */
 export const NON_DELETABLE_STRUCTURES = new Set([

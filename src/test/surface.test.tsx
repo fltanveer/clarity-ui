@@ -15,10 +15,10 @@ describe("AssignUnassignSurface", () => {
     const user = userEvent.setup();
     render(<AssignUnassignSurface />);
     await user.click(screen.getByRole("tab", { name: "Composition" }));
-    const qty = screen.getByRole("textbox", { name: "Qty for Acme US Corporation" });
+    const qty = screen.getByRole("textbox", { name: "Qty for Acme Holdings Inc." });
     await user.click(qty);
     await user.type(qty, "25");
-    const after = screen.getByRole("textbox", { name: "Qty for Acme US Corporation" });
+    const after = screen.getByRole("textbox", { name: "Qty for Acme Holdings Inc." });
     expect(after).toHaveValue("125");
     expect(after).toHaveFocus();
     expect(after).toBe(qty);
@@ -27,13 +27,13 @@ describe("AssignUnassignSurface", () => {
   it("reorders a row with the keyboard and announces the new position", async () => {
     const user = userEvent.setup();
     render(<AssignUnassignSurface />);
-    const grip = screen.getByRole("button", { name: /Reorder Acme US Corporation/ });
+    const grip = screen.getByRole("button", { name: /Reorder Acme Holdings Inc./ });
     grip.focus();
     await user.keyboard("{ArrowDown}");
-    expect(assignedNames()[0]).toContain("Acme Canada Ltd.");
-    expect(assignedNames()[1]).toContain("Acme US Corporation");
-    expect(screen.getByText("Acme US Corporation moved to position 2 of 2")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Reorder Acme US Corporation, position 2 of 2/ })).toHaveFocus();
+    expect(assignedNames()[0]).toContain("Acme North America Inc.");
+    expect(assignedNames()[1]).toContain("Acme Holdings Inc.");
+    expect(screen.getByText("Acme Holdings Inc. moved to position 2 of 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Reorder Acme Holdings Inc., position 2 of 2/ })).toHaveFocus();
   });
 
   it("disables reordering while sorted and says so", async () => {
@@ -53,10 +53,10 @@ describe("AssignUnassignSurface", () => {
   it("offers Undo after removing a row and restores it in place", async () => {
     const user = userEvent.setup();
     render(<AssignUnassignSurface />);
-    await user.click(screen.getByRole("button", { name: "Remove Acme US Corporation" }));
-    expect(screen.queryByRole("button", { name: "Remove Acme US Corporation" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove Acme Holdings Inc." }));
+    expect(screen.queryByRole("button", { name: "Remove Acme Holdings Inc." })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Undo" }));
-    expect(assignedNames()[0]).toContain("Acme US Corporation");
+    expect(assignedNames()[0]).toContain("Acme Holdings Inc.");
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
   });
 
@@ -98,13 +98,13 @@ describe("AssignUnassignSurface", () => {
   it("enters and leaves member scoping from the chip only; Escape also leaves", async () => {
     const user = userEvent.setup();
     render(<AssignUnassignSurface />);
-    const chip = screen.getByRole("button", { name: /Member scope for Acme US Corporation/ });
+    const chip = screen.getByRole("button", { name: /Member scope for Acme Holdings Inc./ });
     await user.click(chip);
     expect(chip).toHaveAttribute("aria-pressed", "true");
     await user.click(screen.getByRole("checkbox", { name: "Corp" }));
     expect(chip).toHaveTextContent("1 of 6");
     await user.keyboard("{Escape}");
-    expect(screen.getByRole("button", { name: /Member scope for Acme US Corporation/ })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /Member scope for Acme Holdings Inc./ })).toHaveAttribute("aria-pressed", "false");
   });
 });
 
@@ -117,7 +117,7 @@ describe("ViewMenu", () => {
     expect(screen.getByRole("menu")).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: /Master list/ })).toHaveFocus();
     await user.keyboard("{ArrowDown}");
-    expect(screen.getByRole("menuitemradio", { name: "Operating companies" })).toHaveFocus();
+    expect(screen.getByRole("menuitemradio", { name: "Core Operating Companies" })).toHaveFocus();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
