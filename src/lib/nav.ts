@@ -66,7 +66,7 @@ export const BOTTOM_TABS: Record<string, string[]> = {
   Revenue: ["Revenues", "+"],
   Cost: ["Costs", "WIP", "Inventory"],
   Expense: ["Opex", "Prepaid", "Accruals", "+"],
-  Workforce: ["Workforce Model", "+"],
+  Workforce: ["Workforce Plans", "+"],
   Asset: ["CapEx", "Intangible", "Properties", "Equipment", "Software & License", "Goodwill", "+"],
   Financing: ["Loans", "Credit Lines", "+"],
   Equity: ["Stock & Equity", "Dividend", "Share", "Capital Raise", "Regular", "+"],
@@ -122,7 +122,7 @@ export const sectionOf = (domain: string, structure: string): StructureSection =
 /* 'Must exist, cannot be deleted' — rename stays open. Keyed Domain:Structure. */
 export const NON_DELETABLE_STRUCTURES = new Set([
   "Revenue:Revenues", "Cost:Costs", "Cost:WIP", "Cost:Inventory", "Expense:Opex",
-  "Workforce:Workforce Model", "Asset:CapEx", "Financing:Loans", "Equity:Stock & Equity",
+  "Workforce:Workforce Plans", "Asset:CapEx", "Financing:Loans", "Equity:Stock & Equity",
 ]);
 
 /* Structure-closed domains: no structure management, even at L100. */

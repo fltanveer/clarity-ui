@@ -11,6 +11,7 @@ import { DEFAULT_COLUMNS, type DisplaySettings, type GridColumn, type GridMode }
 import { MenuDivider, MenuItem, Popover } from "./Popover";
 import { ChromeButton, Pipe } from "./controls";
 import { cx } from "../lib/cx";
+import type { AddAction } from "./LeftPane";
 
 /* ── Row 3a · action toolbar ─────────────────────────────────────────────── */
 /*
@@ -18,8 +19,9 @@ import { cx } from "../lib/cx";
  * only where the MODE gate allows it. The collapse control lives here because
  * this bar survives the collapse — the undo is never hidden with what it hid.
  */
-export function ActionToolbar({ canAuthor, onGridMode, chromeCollapsed, onChromeCollapsed, onAddMember }: {
-  canAuthor: boolean;
+export function ActionToolbar({ add, onGridMode, chromeCollapsed, onChromeCollapsed, onAddMember }: {
+  /** Declared add action: null = not offered; disabled is shown with its reason. */
+  add: AddAction | null;
   onAddMember?: () => void;
   onGridMode: (m: Exclude<GridMode, null>) => void;
   chromeCollapsed: boolean;
@@ -29,9 +31,10 @@ export function ActionToolbar({ canAuthor, onGridMode, chromeCollapsed, onChrome
   const ref = useRef<HTMLButtonElement>(null);
   return (
     <div className="on-bar flex h-row-toolbar shrink-0 items-center gap-2 border-b border-mode-ink bg-mode-solid px-edge">
-      {canAuthor && onAddMember && (
-        <ChromeButton variant="bar" className="border-on-bar-edge-strong font-semibold" aria-haspopup="dialog" onClick={onAddMember}>
-          <Plus size={14} aria-hidden /> Add member
+      {add && onAddMember && (
+        <ChromeButton variant="bar" className="border-on-bar-edge-strong font-semibold" aria-haspopup="dialog" onClick={onAddMember}
+          disabled={!add.enabled} title={add.enabled ? undefined : add.reason}>
+          <Plus size={14} aria-hidden /> {add.label}
         </ChromeButton>
       )}
       <ChromeButton ref={ref} variant="bar" aria-haspopup="menu" aria-expanded={actions} onClick={() => setActions((a) => !a)}>
@@ -90,7 +93,9 @@ export function GridModeBar({ kind, count, onSave, onCancel }: {
 }
 
 /* ── Row 3b · view toolbar ───────────────────────────────────────────────── */
-export function ViewToolbar({ query, onQuery, display, onDisplay, columns, onColumns }: {
+export function ViewToolbar({ query, onQuery, display, onDisplay, columns, onColumns, defaults = DEFAULT_COLUMNS }: {
+  /** What Reset restores: the declared columns where the fixture supplies them. */
+  defaults?: { visible: GridColumn[]; available: GridColumn[] };
   query: string;
   onQuery: (q: string) => void;
   display: DisplaySettings;
@@ -131,7 +136,7 @@ export function ViewToolbar({ query, onQuery, display, onDisplay, columns, onCol
       </Popover>
       <Popover anchorRef={colsRef} open={colsOpen} onClose={() => setColsOpen(false)} role="dialog" label="Columns"
         className="flex max-h-110 w-78 flex-col overflow-hidden">
-        <ColumnPicker columns={columns} onColumns={onColumns} onClose={() => { setColsOpen(false); colsRef.current?.focus(); }} />
+        <ColumnPicker columns={columns} onColumns={onColumns} defaults={defaults} onClose={() => { setColsOpen(false); colsRef.current?.focus(); }} />
       </Popover>
     </div>
   );
@@ -142,7 +147,8 @@ export function ViewToolbar({ query, onQuery, display, onDisplay, columns, onCol
  * remove, available columns carry a checkbox to add. Freeze is a boundary
  * (radio), not a per-column flag. The first column is locked visible.
  */
-function ColumnPicker({ columns, onColumns, onClose }: {
+function ColumnPicker({ columns, onColumns, defaults, onClose }: {
+  defaults: { visible: GridColumn[]; available: GridColumn[] };
   columns: { visible: GridColumn[]; available: GridColumn[] };
   onColumns: (c: { visible: GridColumn[]; available: GridColumn[] }) => void;
   onClose: () => void;
@@ -236,7 +242,7 @@ function ColumnPicker({ columns, onColumns, onClose }: {
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 border-t border-line-subtle bg-shell-alt px-2.5 py-2">
-        <ChromeButton className="h-6" onClick={() => { onColumns(DEFAULT_COLUMNS); setFreeze("name"); setQ(""); }}>
+        <ChromeButton className="h-6" onClick={() => { onColumns(defaults); setFreeze("name"); setQ(""); }}>
           <RefreshCw size={11} aria-hidden /> Reset to default
         </ChromeButton>
         <span className="flex-1" />

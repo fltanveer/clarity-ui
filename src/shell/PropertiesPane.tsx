@@ -2,7 +2,7 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, FileText, Lock, Trash2 } from "lucide-react";
 import {
   DIMENSION_SCHEMA, PROPERTY_TABS, choicesOf, sectionsFor, withMemberValues,
-  type PropertyFieldDef, type PropertySectionDef, type PropertyTab,
+  type PropertyFieldDef, type PropertySectionDef, type PropertyTab, type StructureSchema,
 } from "../lib/properties";
 import { ChromeButton } from "./controls";
 import { cx } from "../lib/cx";
@@ -21,6 +21,8 @@ export interface PropertiesPaneProps {
   memberLocked: boolean;
   /** The inspected member's record: seeds identity and classification values. */
   member?: Member | null;
+  /** Sections the resolved frame supplies for this item, in order; replace the structure's own. */
+  fixtureSections?: PropertySectionDef[];
 }
 
 interface Identity { name: string; shortName: string; description: string; memo: string }
@@ -31,11 +33,14 @@ interface Identity { name: string; shortName: string; description: string; memo:
  * the STRUCTURE; the identity follows the SELECTION. Both re-seed together, so
  * a stale name never sits above new fields.
  */
-export function PropertiesPane({ open, width, onOpen, domain, structure, memberName, memberLocked, member }: PropertiesPaneProps) {
+export function PropertiesPane({ open, width, onOpen, domain, structure, memberName, memberLocked, member, fixtureSections }: PropertiesPaneProps) {
   const master = memberName === null;
+  const supplied = !master && fixtureSections !== undefined;
   const schema = structure ? DIMENSION_SCHEMA[structure] : undefined;
-  const idFields = schema?.identity ?? ["name", "description"];
-  const sections = withMemberValues(sectionsFor(master, structure, domain), master ? undefined : member?.attrs, OPTIONS);
+  /* Fixture-supplied items get only what the fixture declares: Name / Code, then its sections. */
+  const idFields: StructureSchema["identity"] = supplied ? ["name"] : schema?.identity ?? ["name", "description"];
+  const sections = supplied ? fixtureSections
+    : withMemberValues(sectionsFor(master, structure, domain), master ? undefined : member?.attrs, OPTIONS);
   const locked = master || memberLocked || Boolean(schema?.system);
 
   const seed = (): Identity => ({ name: memberName ?? "Master list",
@@ -116,13 +121,13 @@ export function PropertiesPane({ open, width, onOpen, domain, structure, memberN
                 System-managed — members are maintained by ClarityOS and cannot be edited here.
               </p>
             )}
-            <Card id="identity" label="Identity" meta={`${2 + Number(master || idFields.includes("shortName")) + Number(master || idFields.includes("memo"))} fields`}
+            <Card id="identity" label="Identity" meta={supplied ? "1 field" : `${2 + Number(master || idFields.includes("shortName")) + Number(master || idFields.includes("memo"))} fields`}
               open={openSec.identity ?? true} onToggle={() => setOpenSec((p) => ({ ...p, identity: !(p.identity ?? true) }))}>
-              <EditField label="Name | ID" value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} />
+              <EditField label="Name / Code" value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} />
               {(master || idFields.includes("shortName")) && (
                 <EditField label="Short Name" value={draft.shortName} onChange={(v) => setDraft({ ...draft, shortName: v })} />
               )}
-              <EditField area label="Description" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} />
+              {!supplied && <EditField area label="Description" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} />}
               {(master || idFields.includes("memo")) && (
                 <EditField area label="Memo" value={draft.memo} onChange={(v) => setDraft({ ...draft, memo: v })} />
               )}

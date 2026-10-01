@@ -19,15 +19,20 @@ export interface MemberGridProps {
   /** Accessible verb for the gear, e.g. "Configure" or "Show properties for". */
   configureLabel: string;
   emptyMessage?: string;
+  /** Accessible name of the list; the business noun, plural. */
+  label?: string;
+  /** Items that carry the Model role: a click chooses the Model, and there is nothing to configure. */
+  onChoose?: (id: string) => void;
 }
 
 const COL_WIDTH: Record<string, string> = {
-  code: "w-col-code", type: "w-col-type", status: "w-col-status",
-  desc: "w-50", owner: "w-30", modified: "w-30", source: "w-30",
+  code: "w-col-code", short: "w-30", type: "w-col-type", status: "w-col-status",
+  desc: "w-60", region: "w-30", owner: "w-30", modified: "w-30", source: "w-30",
 };
 
 const extra: Record<string, (m: Member) => string> = {
-  desc: () => "—",
+  desc: (m) => m.description || "—",
+  region: (m) => m.attrs?.["Company Region"] ?? "—",
   owner: () => "jack@clarityos",
   modified: () => "04 Feb 2026",
   source: (m) => (m.locked ? "System" : "User"),
@@ -39,7 +44,8 @@ const extra: Record<string, (m: Member) => string> = {
  * or moves panes — only a left-pane click does. Without that rule the layout
  * would change every time someone scanned the grid.
  */
-export function MemberGrid({ members, columns, display, member, peek, onPeek, gridMode, bulkSel, onBulkSel, onMove, onConfigure, configureLabel, emptyMessage }: MemberGridProps) {
+export function MemberGrid({ members, columns, display, member, peek, onPeek, gridMode, bulkSel, onBulkSel, onMove, onConfigure, configureLabel, emptyMessage, label = "Members", onChoose }: MemberGridProps) {
+  const inspect = onChoose ?? onPeek;
   const deletable = members.filter((m) => !m.locked);
   const allSelected = bulkSel.length > 0 && bulkSel.length === deletable.length;
 
@@ -53,8 +59,20 @@ export function MemberGrid({ members, columns, display, member, peek, onPeek, gr
         </span>
       );
     }
-    const value = c.id === "code" ? m.code : c.id === "type" ? m.type : extra[c.id]?.(m) ?? "—";
-    return <span className={cx(COL_WIDTH[c.id] ?? "w-30", "shrink-0 truncate text-caption text-fg-tertiary")}>{value}</span>;
+    /* Short Name is a display alias: blank falls back to Name / Code, marked so it never reads as typed. */
+    if (c.id === "short" && !m.code) {
+      return (
+        <span title="No Short Name — falls back to Name / Code" className={cx(COL_WIDTH.short, "shrink-0 truncate text-caption text-fg-tertiary italic")}>
+          {m.name}<span className="sr-only"> (fallback to Name / Code)</span>
+        </span>
+      );
+    }
+    /* A blank description is not supplied by the fixture: say so rather than show a dash that reads as a value. */
+    if (c.id === "desc" && !m.description) {
+      return <span className={cx(COL_WIDTH.desc, "shrink-0 truncate text-caption text-fg-tertiary italic")}>Not supplied</span>;
+    }
+    const value = c.id === "code" || c.id === "short" ? m.code : c.id === "type" ? m.type : extra[c.id]?.(m) ?? "—";
+    return <span title={value} className={cx(COL_WIDTH[c.id] ?? "w-30", "shrink-0 truncate text-caption text-fg-tertiary")}>{value}</span>;
   };
 
   return (
@@ -76,13 +94,13 @@ export function MemberGrid({ members, columns, display, member, peek, onPeek, gr
         <span className="w-5 shrink-0" />
       </div>
 
-      <ul aria-label="Members" className="min-h-0 flex-1 overflow-y-auto">
+      <ul aria-label={label} className="min-h-0 flex-1 overflow-y-auto">
         {members.map((m, i) => {
           const committed = m.id === member;
           const inspected = m.id === peek;
           return (
             <li key={m.id}
-              onClick={() => onPeek(m.id)}
+              onClick={() => inspect(m.id)}
               aria-current={committed ? "true" : undefined}
               className={cx(
                 "flex h-grid-row cursor-pointer items-center gap-2.5 border-s-[3px] px-3 text-ui text-fg-primary",
@@ -116,12 +134,12 @@ export function MemberGrid({ members, columns, display, member, peek, onPeek, gr
               </span>
               {columns.map((c) => c.id === "name" ? (
                 /* The name is the keyboard route to inspect a row. */
-                <button key={c.id} type="button" onClick={(e) => { e.stopPropagation(); onPeek(m.id); }}
-                  aria-pressed={inspected}
+                <button key={c.id} type="button" onClick={(e) => { e.stopPropagation(); inspect(m.id); }}
+                  aria-pressed={onChoose ? undefined : inspected}
                   className="min-w-0 flex-1 cursor-pointer truncate text-start">{m.name}</button>
               ) : <span key={c.id} className="contents">{cell(m, c)}</span>)}
               <span className="grid w-5 shrink-0 place-items-center">
-                {gridMode !== "reorder" && (
+                {gridMode !== "reorder" && !onChoose && (
                   <button type="button" aria-label={`${configureLabel} ${m.name}`} title={`${configureLabel} ${m.name}`}
                     onClick={(e) => { e.stopPropagation(); onConfigure(m.id); }}
                     className="grid size-5 cursor-pointer place-items-center rounded-chip text-fg-icon hover:bg-hover hover:text-fg-primary">
@@ -132,7 +150,7 @@ export function MemberGrid({ members, columns, display, member, peek, onPeek, gr
             </li>
           );
         })}
-        {!members.length && <li className="px-3 py-4.5 text-caption text-fg-tertiary">{emptyMessage ?? "No members in this view."}</li>}
+        {!members.length && <li className="px-3 py-4.5 text-caption text-fg-tertiary">{emptyMessage ?? "Nothing in this view."}</li>}
       </ul>
     </div>
   );

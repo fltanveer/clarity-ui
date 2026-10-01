@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { AppShell } from "../shell/AppShell";
 
 const gridNames = () =>
-  within(screen.getByRole("list", { name: "Members" })).getAllByRole("listitem").map((li) => li.textContent ?? "");
+  within(screen.getByRole("list", { name: "Companies" })).getAllByRole("listitem").map((li) => li.textContent ?? "");
 
 const setup = () => {
   const user = userEvent.setup();
@@ -20,24 +20,24 @@ describe("AppShell", () => {
     expect(screen.getByRole("tab", { name: "Companies" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("complementary", { name: "Properties" })).toBeInTheDocument();
     /* Authoring controls are MODE-gated. */
-    expect(screen.queryByRole("button", { name: "Add member" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Company" })).not.toBeInTheDocument();
   });
 
   it("MODEL recolours the chrome, adds authoring controls and removes the master-list properties pane", async () => {
     const { user, root } = setup();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
     expect(root).toHaveAttribute("data-mode", "MODEL");
-    expect(screen.getAllByRole("button", { name: "Add member" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Add Company" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Add Subcategory" })).toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Properties" })).not.toBeInTheDocument();
   });
 
   it("a centre-grid click inspects a row and drives properties without committing the member", async () => {
     const { user } = setup();
-    await user.click(within(screen.getByRole("list", { name: "Members" })).getByRole("button", { name: "Acme Europe Ltd." }));
+    await user.click(within(screen.getByRole("list", { name: "Companies" })).getByRole("button", { name: "Acme Europe Ltd." }));
     const props = screen.getByRole("complementary", { name: "Properties" });
     expect(within(props).getByRole("heading", { name: "Acme Europe Ltd." })).toBeInTheDocument();
-    expect(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: "Acme Europe Ltd." })).not.toHaveAttribute("aria-current");
+    expect(within(screen.getByRole("list", { name: /Companies in/ })).getByRole("button", { name: "Acme Europe Ltd." })).not.toHaveAttribute("aria-current");
   });
 
   it("switching domain resets the structure to that domain's first", async () => {
@@ -84,15 +84,15 @@ describe("AppShell", () => {
   it("in MODEL a member click opens configuration; each attribute section is its own menu item", async () => {
     const { user } = setup();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
-    await user.click(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: "Acme North America Inc." }));
+    await user.click(within(screen.getByRole("list", { name: /Companies in/ })).getByRole("button", { name: "Acme North America Inc." }));
     const nav = screen.getByRole("navigation", { name: "Member sections" });
     /* Opens on Identity, with initial info filled in. */
     expect(within(nav).getByRole("button", { name: "Identity" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("textbox", { name: "Name | ID" })).toHaveValue("Acme North America Inc.");
+    expect(screen.getByRole("textbox", { name: "Name / Code" })).toHaveValue("Acme North America Inc.");
     /* Schema sections and System Details are separate pages under Attributes. */
     await user.click(within(nav).getByRole("button", { name: "Classification" }));
     expect(screen.getByRole("combobox", { name: "Functional Currency" })).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: "Name | ID" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Name / Code" })).not.toBeInTheDocument();
     await user.click(within(nav).getByRole("button", { name: "System Details" }));
     expect(screen.getByText("Member ID")).toBeInTheDocument();
     await user.click(within(nav).getByRole("button", { name: "Identity" }));
@@ -114,16 +114,16 @@ describe("AppShell", () => {
   it("system-defined members cannot be deleted; others confirm before deleting", async () => {
     const { user } = setup();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
-    await user.click(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: /^Acme Holdings Inc\./ }));
+    await user.click(within(screen.getByRole("list", { name: /Companies in/ })).getByRole("button", { name: /^Acme Holdings Inc\./ }));
     expect(screen.getByRole("button", { name: "Delete member" })).toBeDisabled();
-    await user.click(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: "Acme UK Ltd." }));
+    await user.click(within(screen.getByRole("list", { name: /Companies in/ })).getByRole("button", { name: "Acme UK Ltd." }));
     await user.click(screen.getByRole("button", { name: "Delete member" }));
     expect(screen.getByRole("alertdialog", { name: "Delete Acme UK Ltd.?" })).toBeInTheDocument();
     await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
-    expect(screen.getByRole("textbox", { name: "Name | ID" })).toHaveValue("Acme UK Ltd.");
+    expect(screen.getByRole("textbox", { name: "Name / Code" })).toHaveValue("Acme UK Ltd.");
     await user.click(screen.getByRole("button", { name: "Delete member" }));
     await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete member" }));
-    expect(within(screen.getByRole("list", { name: /Members in/ })).queryByRole("button", { name: "Acme UK Ltd." })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: /Companies in/ })).queryByRole("button", { name: "Acme UK Ltd." })).not.toBeInTheDocument();
   });
 
   it("Ctrl+Shift+F collapses the chrome and the strip restores it", async () => {
@@ -162,7 +162,7 @@ describe("AppShell", () => {
 
     await user.click(within(sw).getByRole("button", { name: /^Core Operating Companies/ }));
     expect(screen.queryByRole("dialog", { name: "Choose model and view" })).not.toBeInTheDocument();
-    expect(within(screen.getByRole("list", { name: "Members in Core Operating Companies" })).getAllByRole("button")).toHaveLength(5);
+    expect(within(screen.getByRole("list", { name: "Companies in Core Operating Companies" })).getAllByRole("button")).toHaveLength(5);
     expect(screen.getByRole("region", { name: "Work area" })).toBeInTheDocument();
   });
 
@@ -196,7 +196,7 @@ describe("AppShell", () => {
     await user.click(within(mgr).getByRole("button", { name: "Apply view" }));
 
     expect(screen.queryByRole("region", { name: "View management" })).not.toBeInTheDocument();
-    expect(within(screen.getByRole("list", { name: "Members in Europe" })).getAllByRole("button")).toHaveLength(1);
+    expect(within(screen.getByRole("list", { name: "Companies in Europe" })).getAllByRole("button")).toHaveLength(1);
   });
 
   it("DATA has no manage entry; manage views guards unsaved edits", async () => {
@@ -281,7 +281,7 @@ describe("AppShell", () => {
   it("the model + view panel opens while a member's configuration is showing", async () => {
     const { user } = setup();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
-    await user.click(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: "Acme North America Inc." }));
+    await user.click(within(screen.getByRole("list", { name: /Companies in/ })).getByRole("button", { name: "Acme North America Inc." }));
     expect(screen.getByRole("region", { name: "Acme North America Inc. configuration" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Change model or view" }));
@@ -377,7 +377,7 @@ describe("AppShell", () => {
     await user.type(name, "Board pack");
     await user.click(within(mgr).getByRole("button", { name: "Save & apply" }));
     expect(screen.queryByRole("region", { name: "View management" })).not.toBeInTheDocument();
-    expect(screen.getByRole("list", { name: "Members in Board pack" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Companies in Board pack" })).toBeInTheDocument();
     mgr = await openManager(user);
     expect(within(tree()).getByRole("button", { name: /^Board pack/ })).toBeInTheDocument();
   });
@@ -392,7 +392,7 @@ describe("AppShell", () => {
     await user.click(screen.getByRole("button", { name: "MODEL" }));
     await user.click(screen.getByRole("button", { name: "Configure Acme Holdings Inc." }));
     expect(screen.getByRole("region", { name: "Acme Holdings Inc. configuration" })).toBeInTheDocument();
-    expect(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: /^Acme Holdings Inc\./ })).toHaveAttribute("aria-current", "true");
+    expect(within(screen.getByRole("list", { name: /Companies in/ })).getByRole("button", { name: /^Acme Holdings Inc\./ })).toHaveAttribute("aria-current", "true");
   });
 
   it("members and properties panes resize from their splitters by keyboard, within limits", async () => {
@@ -451,17 +451,17 @@ describe("AppShell", () => {
   it("the members pane + adds a company: identity and classification in one dialog, then its configuration opens", async () => {
     const { user } = setup();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
-    await user.click(within(screen.getByRole("complementary", { name: "Members" })).getByRole("button", { name: "Add member" }));
+    await user.click(within(screen.getByRole("complementary", { name: "Members" })).getByRole("button", { name: "Add Company" }));
     const dialog = screen.getByRole("dialog", { name: "New company" });
     expect(within(dialog).getAllByRole("combobox").map((c) => dialog.querySelector(`label[for="${c.id}"]`)?.textContent))
       .toEqual(["Functional Currency", "Calendar", "Company Region"]);
 
-    await user.type(within(dialog).getByRole("textbox", { name: "Name | ID" }), "acme uk ltd.");
+    await user.type(within(dialog).getByRole("textbox", { name: "Name / Code" }), "acme uk ltd.");
     await user.click(within(dialog).getByRole("button", { name: "Create company" }));
     expect(within(dialog).getByText(/already has a company called/)).toBeInTheDocument();
 
-    await user.clear(within(dialog).getByRole("textbox", { name: "Name | ID" }));
-    await user.type(within(dialog).getByRole("textbox", { name: "Name | ID" }), "Acme France SAS");
+    await user.clear(within(dialog).getByRole("textbox", { name: "Name / Code" }));
+    await user.type(within(dialog).getByRole("textbox", { name: "Name / Code" }), "Acme France SAS");
     await user.type(within(dialog).getByRole("textbox", { name: "Short Name" }), "Acme FR");
     await user.selectOptions(within(dialog).getByRole("combobox", { name: "Company Region" }), "Europe");
     await user.click(within(dialog).getByRole("button", { name: "Create company" }));
@@ -469,7 +469,7 @@ describe("AppShell", () => {
     expect(screen.queryByRole("dialog", { name: "New company" })).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Acme France SAS configuration" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Short Name" })).toHaveValue("Acme FR");
-    expect(within(screen.getByRole("list", { name: /Members in/ })).getByRole("button", { name: "Acme France SAS" })).toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: /Companies in/ })).getByRole("button", { name: "Acme France SAS" })).toBeInTheDocument();
   });
   it("Security › User and Role use the member layout: users carry a role, roles list their users", async () => {
     const { user } = setup();

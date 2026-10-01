@@ -15,7 +15,7 @@ export interface GridColumn {
 
 export const DEFAULT_COLUMNS = {
   visible: [
-    { id: "name", label: "Name | ID" }, { id: "code", label: "Code" },
+    { id: "name", label: "Name / Code" }, { id: "code", label: "Code" },
     { id: "type", label: "Type" }, { id: "status", label: "Status" },
   ] as GridColumn[],
   available: [

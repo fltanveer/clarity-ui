@@ -38,7 +38,8 @@ const rows = (list: Row[], type: Member["type"] = "Standard", locked = false): M
 
 export const REGIONS = rows([
   ["rg-glb", "Global", "GLB", "Group-wide designation spanning all operating regions"],
-  ["rg-na", "North America", "NA", "Companies operating in the United States and Canada"],
+  /* Blank on purpose in the fixture: Short Name falls back to Name / Code. */
+  ["rg-na", "North America", "", "Companies operating in the United States and Canada"],
   ["rg-eu", "Europe", "EU", "Companies operating across continental Europe"],
   ["rg-uk", "United Kingdom", "UK", "Companies operating in the United Kingdom"],
   ["rg-me", "Middle East", "ME", "Companies operating in Middle Eastern markets"],
@@ -188,6 +189,21 @@ const groupRows = (list: typeof GROUPS, of: Member[]) =>
 export const COMPANY_GROUPS = groupRows(GROUPS, COMPANIES);
 export const ACCOUNT_GROUP_MEMBERS = groupRows(ACCOUNT_GROUPS, ACCOUNTS);
 
+/*
+ * Workforce (fixture: ClarityOS_Fixture_Company_Regions_Workforce, v0.5).
+ * Workforce Plans are Records in MODEL context and carry the Model role in
+ * DATA context. People sit under a plan; only Workforce USA has any.
+ */
+export const WORKFORCE_PLANS = rows([
+  ["wf-usa", "Workforce USA", "WF US", "United States workforce plan"],
+  ["wf-can", "Workforce Canada", "WF CA", "Canadian workforce plan"],
+]);
+/* No Short Name or Description supplied for people: left blank, not invented. */
+export const PEOPLE = rows([
+  ["ps-dave", "Dave", "", ""],
+  ["ps-jack", "Jack", "", ""],
+]);
+
 /* Keyed "Domain:Structure" — Custom Rollups exist under several domains. */
 const BY_STRUCTURE: Record<string, Member[]> = {
   "Company:Companies": COMPANIES,
@@ -201,13 +217,14 @@ const BY_STRUCTURE: Record<string, Member[]> = {
   "Account:Custom Rollups": ACCOUNT_GROUP_MEMBERS,
   "User:Users": USERS,
   "Role:Roles": ROLES,
+  "Workforce:Workforce Plans": WORKFORCE_PLANS,
 };
 
 /* No structure yet (a new domain): nothing to list, not stand-ins. */
 export const membersFor = (domain: string | null, structure: string | null): Member[] =>
   structure === null ? [] : BY_STRUCTURE[`${domain}:${structure}`] ?? MEMBERS;
 
-const ALL = [...MEMBERS, ...Object.values(BY_STRUCTURE).flat()];
+const ALL = [...MEMBERS, ...Object.values(BY_STRUCTURE).flat(), ...PEOPLE];
 
 /* Options for a classification select, from the structure that owns the values. */
 export const OPTIONS: Record<string, string[]> = {

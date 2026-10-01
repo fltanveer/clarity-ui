@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { ArrowLeftRight, ChevronLeft, ChevronRight, Layers, Lock, Plus, Search, X } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowLeftRight, ChevronDown, ChevronLeft, ChevronRight, Layers, Lock, Plus, Search, X } from "lucide-react";
 import type { Member, MemberView } from "../lib/members";
+import type { ModelSelector, ResolvedFrame } from "../lib/fixtures";
 import { cx } from "../lib/cx";
 import { VIEW_SWITCHER_ANCHOR } from "./ViewSwitcher";
 
@@ -9,7 +10,6 @@ export interface LeftPaneProps {
   /** Expanded width in px (resizable). */
   width?: number;
   onCollapsed: (c: boolean) => void;
-  canAuthor: boolean;
   member: string | null;
   onMember: (id: string | null) => void;
   peek: string | null;
@@ -23,9 +23,27 @@ export interface LeftPaneProps {
 
   /** Members deleted this session. */
   hidden?: string[];
-  /** Opens the new-member dialog; absent where adding is not possible. */
+  /** Opens the add dialog. */
   onAddMember?: () => void;
+  /** Declared add action: null = not offered; disabled is shown with its reason. */
+  add: AddAction | null;
+
+  /* ── Resolved-frame structures (fixtures) ── */
+  /** Model selector, above the View card. Absent where the frame declares none. */
+  modelSelector?: ModelSelector;
+  onModel?: (id: string) => void;
+  /** The list exactly as resolved (already narrowed by the View); skips the pane's own view filter. */
+  listed?: Member[];
+  /** Plural business noun for the list's accessible name, e.g. "Companies". */
+  listLabel?: string;
+  /** Items carry the Model role: a click chooses that Model. */
+  onChoose?: (id: string) => void;
+  emptyMessage?: string;
+  /** What the list is, as declared: Model in MODEL mode, Record in DATA; Parent or Child. */
+  context?: ResolvedFrame["context"];
 }
+
+export interface AddAction { label: string; enabled: boolean; reason?: string }
 
 /*
  * Members pane. Two selection states, deliberately distinct:
@@ -35,15 +53,19 @@ export interface LeftPaneProps {
  * row carries the bar, because it answers "where am I".
  */
 export function LeftPane({
-  collapsed, width, onCollapsed, canAuthor, member, onMember, peek, structure, view, members, chooserOpen, onChooser,
-  hidden = [], onAddMember,
+  collapsed, width, onCollapsed, member, onMember, peek, structure, view, members, chooserOpen, onChooser,
+  hidden = [], onAddMember, add, modelSelector, onModel, listed, listLabel, onChoose, emptyMessage, context,
 }: LeftPaneProps) {
   const [q, setQ] = useState("");
+  /* Search is one icon until asked for; closing it clears the query so nothing stays filtered unseen. */
+  const [searching, setSearching] = useState(false);
+  const closeSearch = () => { setSearching(false); setQ(""); };
   const shown = useMemo(
-    () => members.filter((m) => view.ids.includes(m.id) && !hidden.includes(m.id))
+    () => (listed ?? members.filter((m) => view.ids.includes(m.id))).filter((m) => !hidden.includes(m.id))
       .filter((m) => m.name.toLowerCase().includes(q.trim().toLowerCase())),
-    [members, view, q, hidden],
+    [listed, members, view, q, hidden],
   );
+  const addReasonId = "left-pane-add-reason";
 
   if (collapsed) {
     const name = members.find((m) => m.id === member)?.name;
@@ -66,33 +88,48 @@ export function LeftPane({
   return (
     <aside aria-label="Members" style={width ? { width } : undefined} className="flex w-left-pane shrink-0 flex-col overflow-hidden bg-shell">
       <div className="flex h-row-toolbar shrink-0 items-center gap-1.5 border-b border-line-subtle bg-shell-alt ps-3 pe-1.5">
-        <h2 className="text-caption font-semibold tracking-label text-fg-tertiary uppercase">Members</h2>
+        <h2 className="min-w-0 flex-1 truncate text-body font-semibold">Members</h2>
+        <button type="button" onClick={() => (searching ? closeSearch() : setSearching(true))}
+          aria-label="Search members" aria-expanded={searching} aria-controls="left-pane-search"
+          className={cx("grid size-7 shrink-0 cursor-pointer place-items-center rounded-control border",
+            searching || q ? "border-mode-solid bg-mode-soft text-mode-ink" : "border-line-control bg-surface text-fg-secondary hover:border-line-control-hover hover:text-fg-primary")}>
+          <Search size={14} aria-hidden />
+        </button>
+        {add && onAddMember && (
+          /* Disabled stays visible with its reason: the mode disables, it never removes. */
+          <button type="button" aria-label={add.label} title={add.enabled ? add.label : `${add.label} — ${add.reason}`}
+            aria-haspopup="dialog" disabled={!add.enabled} aria-describedby={add.enabled ? undefined : addReasonId}
+            onClick={onAddMember}
+            className={cx("grid size-7 shrink-0 place-items-center rounded-control border bg-surface",
+              add.enabled ? "cursor-pointer border-line-control text-mode-ink hover:border-mode-solid hover:bg-mode-soft" : "cursor-not-allowed border-line-subtle text-fg-disabled")}>
+            <Plus size={15} aria-hidden />
+          </button>
+        )}
+        {add && !add.enabled && add.reason && !onChoose && <span id={addReasonId} className="sr-only">{add.reason}</span>}
+        <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-line-subtle" />
         <button type="button" onClick={() => onCollapsed(true)} aria-label="Collapse members"
-          className="ms-auto grid size-6 cursor-pointer place-items-center rounded-chip text-fg-tertiary hover:bg-hover">
-          <ChevronLeft size={14} aria-hidden />
+          className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-control text-fg-tertiary hover:bg-hover hover:text-fg-primary">
+          <ChevronLeft size={15} aria-hidden />
         </button>
       </div>
 
-      <div className="flex items-center gap-1.5 border-b border-line-subtle px-2.5 py-2">
-        <label className="flex h-button min-w-0 flex-1 items-center gap-1.5 rounded-control border border-line-control bg-surface hover:border-line-control-hover px-2">
-          <Search size={12} aria-hidden className="shrink-0 text-fg-tertiary" />
-          <span className="sr-only">Search members</span>
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search members"
-            className="min-w-0 flex-1 bg-transparent text-caption outline-none placeholder:text-fg-tertiary [&::-webkit-search-cancel-button]:hidden" />
-          {q && (
-            <button type="button" onClick={() => setQ("")} aria-label="Clear member search"
-              className="grid size-4 shrink-0 cursor-pointer place-items-center rounded-chip text-fg-tertiary hover:bg-hover">
-              <X size={10} aria-hidden />
-            </button>
-          )}
-        </label>
-        {canAuthor && onAddMember && (
-          <button type="button" aria-label="Add member" title="Add member" aria-haspopup="dialog" onClick={onAddMember}
-            className="grid size-button shrink-0 cursor-pointer place-items-center rounded-control border border-mode-solid text-mode-ink hover:bg-mode-soft">
-            <Plus size={14} aria-hidden />
-          </button>
-        )}
-      </div>
+      {searching && (
+        <div id="left-pane-search" className="border-b border-line-subtle px-2.5 py-2">
+          <label className="flex h-button min-w-0 items-center gap-1.5 rounded-control border border-line-control bg-surface px-2 hover:border-line-control-hover">
+            <Search size={12} aria-hidden className="shrink-0 text-fg-tertiary" />
+            <span className="sr-only">Search this list</span>
+            <input type="search" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search"
+              onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeSearch(); } }}
+              className="min-w-0 flex-1 bg-transparent text-caption outline-none placeholder:text-fg-tertiary [&::-webkit-search-cancel-button]:hidden" />
+            {q && (
+              <button type="button" onClick={() => setQ("")} aria-label="Clear search"
+                className="grid size-4 shrink-0 cursor-pointer place-items-center rounded-chip text-fg-tertiary hover:bg-hover">
+                <X size={10} aria-hidden />
+              </button>
+            )}
+          </label>
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto py-1">
         {/*
@@ -105,6 +142,7 @@ export function LeftPane({
                    the wash holds, the edge takes the mode colour
           open   — as active, and the change button turns solid
         */}
+        {modelSelector && <ModelRow selector={modelSelector} onModel={onModel} context={context} />}
         <div className="px-2 pt-0.5 pb-1.5">
           <div data-active={member === null || chooserOpen ? "" : undefined} className={cx(
             "group/card relative isolate flex items-center gap-1 overflow-hidden rounded-panel border pe-1.5",
@@ -148,19 +186,26 @@ export function LeftPane({
           </div>
         </div>
 
-        <ul aria-label={`Members in ${view.name}`}>
+        {/* Choosing a Model happens here: at All Models the list IS the picker, so it says so. */}
+        {onChoose && (
+          <p id={addReasonId} className="px-3 pt-1 pb-0.5 text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">
+            {add?.reason ?? "Choose a Model"}
+          </p>
+        )}
+        <ul aria-label={`${listLabel ?? "Members"} in ${view.name}`}>
           {shown.map((m: Member) => {
             const on = m.id === member;
             const peeked = !on && m.id === peek;
             return (
               <li key={m.id}>
-                <button type="button" onClick={() => onMember(m.id)} aria-current={on ? "true" : undefined}
+                <button type="button" onClick={() => (onChoose ?? onMember)(m.id)} aria-current={on ? "true" : undefined}
                   className={cx(
                     "flex w-full cursor-pointer items-center gap-1.5 border-s-[3px] py-1.5 ps-6 pe-3 text-start",
                     on ? "border-s-mode-solid bg-mode-soft" : peeked ? "border-s-transparent bg-shell-alt" : "border-s-transparent hover:bg-shell-alt",
                   )}>
                   <span className={cx("min-w-0 flex-1 truncate text-ui", on ? "font-semibold text-mode-ink" : "text-fg-secondary")}>{m.name}</span>
                   {m.locked && <Lock size={11} aria-label="System-defined" className="shrink-0 text-fg-icon" />}
+                  {onChoose && <ChevronRight size={13} aria-hidden className="shrink-0 text-fg-icon" />}
                 </button>
               </li>
             );
@@ -168,10 +213,59 @@ export function LeftPane({
         </ul>
         {!shown.length && (
           <p className="px-6 py-2 text-caption text-fg-tertiary">
-            {q.trim() ? `No members match “${q}”.` : structure ? "No members in this view." : "No structures yet."}
+            {q.trim() ? `Nothing matches “${q}”.` : structure ? emptyMessage ?? "Nothing in this view." : "No structures yet."}
           </p>
         )}
       </div>
     </aside>
+  );
+}
+
+/* "All Models" → "All models": the back link reads as a sentence. */
+const sentence = (t: string) => t.charAt(0) + t.slice(1).toLowerCase();
+
+/*
+ * Model selector, above the View card. Three states:
+ *   one Model     — label and its name as text; nothing to pick.
+ *   All Models    — label and the dropdown; the list below is the Models.
+ *   Model chosen  — "← All models" takes the label's place, so the way back sits
+ *                   exactly where the eye already is; the dropdown switches plans.
+ */
+function ModelRow({ selector, onModel, context }: { selector: ModelSelector; onModel?: (id: string) => void; context?: ResolvedFrame["context"] }) {
+  const eyebrow = <p id="left-pane-model-label" className="ps-0.5 text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">Model</p>;
+  /* Switching mode flips the role in place: the same list reads as Models, then as Records. */
+  const chip = context && (
+    <span className="shrink-0 rounded-chip bg-mode-soft px-1.5 py-0.5 text-micro font-semibold whitespace-nowrap text-mode-ink">
+      {context.role} | {context.type}
+    </span>
+  );
+  const top = (lead: ReactNode) => <div className="mb-1 flex min-h-5 items-center justify-between gap-2">{lead}{chip}</div>;
+  if (selector.kind === "text") {
+    return (
+      <div className="px-3 pt-1.5 pb-2">
+        {top(eyebrow)}
+        <p aria-labelledby="left-pane-model-label" className="truncate ps-0.5 text-ui font-semibold">{selector.label}</p>
+      </div>
+    );
+  }
+  const [all, ...models] = selector.options;
+  const chosen = selector.value !== all.id;
+  return (
+    <div className="px-2.5 pt-1.5 pb-2">
+      {top(chosen ? (
+        <button type="button" onClick={() => onModel?.(all.id)}
+          className="flex cursor-pointer items-center gap-1 rounded-chip ps-0.5 pe-1 text-caption font-medium text-mode-ink hover:underline">
+          <ArrowLeft size={13} aria-hidden /> {sentence(all.label)}
+        </button>
+      ) : eyebrow)}
+      <div className="relative">
+        <select aria-label="Model" value={selector.value} onChange={(e) => onModel?.(e.target.value)}
+          className="h-control-form w-full cursor-pointer appearance-none truncate rounded-control border border-line-control bg-surface ps-2.5 pe-8 text-ui text-fg-primary hover:border-line-control-hover">
+          <option value={all.id}>{all.label}</option>
+          {models.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+        </select>
+        <ChevronDown size={14} aria-hidden className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-fg-tertiary" />
+      </div>
+    </div>
   );
 }

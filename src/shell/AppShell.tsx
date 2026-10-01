@@ -18,7 +18,10 @@ import { ViewSwitcher } from "./ViewSwitcher";
 import { ContainerConfigDialog, ContainerConfiguration, identityFieldsFor, type ContainerSubject } from "./ContainerConfiguration";
 import { seedFieldSettings, type FieldSettingsValue } from "./FieldSettings";
 import { Splitter } from "./Splitter";
-import { DEFAULT_COLUMNS, type DisplaySettings, type GridMode, type Mode } from "./types";
+import { DEFAULT_COLUMNS, type DisplaySettings, type GridColumn, type GridMode, type Mode } from "./types";
+import { ALL_MODELS, FIXTURE_STRUCTURES, STRUCTURE_COLUMNS, STRUCTURE_TYPE, resolveFrame } from "../lib/fixtures";
+import { DIMENSION_SCHEMA } from "../lib/properties";
+import type { AddAction } from "./LeftPane";
 
 /* Below this width the centre would fall under its 600px minimum with the rail open. */
 const NARROW = 1360;
@@ -71,7 +74,8 @@ const structureSubject = (domain: string, structure: string, members: string[]):
   keyValue: structure.toLowerCase().replace(/[^a-z0-9]+/g, "_"), idValue: FIXTURE_ID("5f82df24bb03"),
   parent: { kind: "Domain", name: domain },
   children: { kind: "Records in this structure", items: members },
-  roles: { kind: "Domain Structure", note: "One shared contract. Cardinality applies in the child role only." },
+  roles: { kind: "Domain Structure", note: "One shared contract. Cardinality applies in the child role only.",
+    declared: STRUCTURE_TYPE[`${domain}:${structure}`] },
   /* Internal taxonomy: visible at L100, read-only, never a Clean UI control (orientation §2). */
   classification: [
     { label: "Structure type", hint: "Navigation taxonomy · not a user-controlled value",
@@ -146,6 +150,10 @@ export function AppShell() {
   const [gridQuery, setGridQuery] = useState("");
   const [display, setDisplay] = useState<DisplaySettings>({ rowNumbers: true, gridlines: true, zebra: false });
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
+  /* Column edits where the fixture declares the columns, keyed by list. */
+  const [columnsBy, setColumnsBy] = useState<Record<string, { visible: GridColumn[]; available: GridColumn[] }>>({});
+  /* Model selector value per structure. Never defaulted to a Model: "All Models" until one is chosen. */
+  const [modelBy, setModelBy] = useState<Record<string, string>>({});
 
   const [gridMode, setGridMode] = useState<GridMode>(null);
   const [bulkSel, setBulkSel] = useState<string[]>([]);
@@ -236,6 +244,11 @@ export function AppShell() {
     Object.values(addedMembers).flat().find((m) => m.id === id) ?? fixtureById(id);
   const liveMembers = members.filter((m) => !deleted.includes(m.id));
   const orderKey = `${domain}:${structure}`;
+  /* The declared state for this structure, mode and access level; null where the fixture has none. */
+  const frame = resolveFrame({ domain, structure, mode, access: l100 ? "L100" : "user", model: modelBy[orderKey] ?? ALL_MODELS });
+  /* A frame whose list is not the structure's own records (people under a chosen plan). */
+  const nested = frame !== null && frame.list.key !== orderKey;
+  const chooseModel = (id: string) => { setModelBy((m) => ({ ...m, [orderKey]: id })); setMember(null); setPeek(null); exitGridMode(); };
   const committedOrder = orderBy[orderKey] ?? members.map((m) => m.id);
   const views = viewsBy[orderKey] ?? defaultViews(domain, structure);
   const setViews = (next: MemberView[]) => setViewsBy((m) => ({ ...m, [orderKey]: next }));
@@ -249,6 +262,24 @@ export function AppShell() {
         return !q || m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q);
       });
   }, [order, committedOrder, view, deleted, gridQuery]);
+  /* A nested list comes as resolved; the View still narrows it (Master list = everything). */
+  const nestedRows = useMemo(() => !frame || !nested ? [] : [
+    ...frame.list.ids.map((id) => memberById(id)!), ...(addedMembers[frame.list.key] ?? []),
+  ].filter((m) => !deleted.includes(m.id) && (view.id === "master" || view.ids.includes(m.id))),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [frame, nested, addedMembers, deleted, view]);
+  const q = gridQuery.trim().toLowerCase();
+  const gridRows = nested ? nestedRows.filter((m) => !q || m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)) : baseRows;
+
+  /* Add: as the frame declares it; elsewhere authoring modes add, labelled with the business noun. */
+  const add: AddAction | null = frame ? frame.add
+    : canAuthor ? { label: `Add ${(structure && DIMENSION_SCHEMA[structure]?.kind) || "Record"}`, enabled: true } : null;
+  const declaredColumns = frame?.columns ?? STRUCTURE_COLUMNS[orderKey];
+  const columnKey = frame ? `${frame.list.key}:${frame.list.role}` : orderKey;
+  const columnDefaults = declaredColumns ? { visible: declaredColumns, available: [] } : DEFAULT_COLUMNS;
+  const gridColumns = declaredColumns ? columnsBy[columnKey] ?? columnDefaults : columns;
+  const setGridColumns = (c: typeof columns) => (declaredColumns ? setColumnsBy((m) => ({ ...m, [columnKey]: c })) : setColumns(c));
+  const pluralNoun = (noun: string) => (noun === "Person" ? "People" : noun === "Company" ? "Companies" : `${noun}s`);
 
   const moveRow = (index: number, delta: number) => {
     const ids = baseRows.map((m) => m.id);
@@ -262,7 +293,8 @@ export function AppShell() {
 
   /* Member workspaces: every Dimensions domain, and Security's User and Role, share one layout
      (members · grid · properties, member configuration in MODEL). */
-  const hasMembers = workspace === "dimensions" || (workspace === "security" && (domain === "User" || domain === "Role"));
+  const hasMembers = workspace === "dimensions" || (workspace === "security" && (domain === "User" || domain === "Role"))
+    || FIXTURE_STRUCTURES.has(orderKey);
   /* MODEL + member selected → member configuration (CH-002), no far-right pane. */
   const memberMode = hasMembers && mode === "MODEL" && member !== null;
   /* L100 · a member of a structure is a Model, so picking one configures that Model. */
@@ -270,6 +302,8 @@ export function AppShell() {
   /* MODEL master list has no properties pane: it could only restate the name. */
   const showProperties = hasMembers && !memberMode && !modelMode && !(mode === "MODEL" && member === null);
   const memberName = memberById(peek ?? member)?.name ?? null;
+  /* Nested items render only what the frame supplies for them — nothing from the structure's schema. */
+  const fixtureSections = nested && frame ? frame.sections?.[(peek ?? member)!] ?? [] : undefined;
   /* A pane can only grow into space the grid does not need. */
   const rightTaken = showProperties ? (rightOpen ? rightWidth : RIGHT_RAIL) : 0;
   const leftTaken = hasMembers ? (leftCollapsed ? LEFT_RAIL : leftWidth) : 0;
@@ -291,7 +325,8 @@ export function AppShell() {
         ) : (
           <>
             <Header workspace={workspace} domain={domain} structure={structure}
-              memberName={memberById(member)?.name ?? null} l100={l100} />
+              memberName={memberById(member)?.name ?? null} l100={l100}
+              model={frame ? (nested ? frame.governing : frame.path.model) : null} />
             <DomainBar workspace={workspace} domain={domain} onDomain={changeDomain}
               mode={mode} onMode={changeMode} l100={l100} onL100={changeL100}
               onConfigure={(d) => setConfig(domainSubject(workspace, d))}
@@ -313,10 +348,15 @@ export function AppShell() {
             narrows below that only when the window cannot fit the panes' own minimums. */}
         <main ref={mainRef} className="flex min-h-0 flex-1 overflow-hidden bg-canvas">
           {hasMembers && (
-            <LeftPane collapsed={leftCollapsed} width={leftShown} onCollapsed={setLeftCollapsed} canAuthor={canAuthor}
+            <LeftPane collapsed={leftCollapsed} width={leftShown} onCollapsed={setLeftCollapsed}
               member={member} onMember={(id) => { setMember(id); setPeek(null); }} peek={peek}
               structure={structure} view={view} members={members} hidden={deleted}
-              onAddMember={structure ? () => setAdding(true) : undefined}
+              onAddMember={structure ? () => setAdding(true) : undefined} add={add}
+              modelSelector={frame?.modelSelector} onModel={chooseModel}
+              listed={nested ? nestedRows : undefined}
+              listLabel={frame ? pluralNoun(frame.list.noun) : undefined}
+              onChoose={frame?.list.role === "Model" ? chooseModel : undefined}
+              emptyMessage={frame?.list.empty} context={frame?.context}
               chooserOpen={chooserOpen} onChooser={(o) => { setChooserOpen(o); if (o) exitGridMode(); }} />
           )}
           {hasMembers && !leftCollapsed && (
@@ -353,20 +393,22 @@ export function AppShell() {
                     exitGridMode();
                   }} />
               ) : (
-                <ActionToolbar canAuthor={canAuthor} onGridMode={setGridMode}
+                <ActionToolbar add={add} onGridMode={setGridMode}
                   onAddMember={hasMembers && structure ? () => setAdding(true) : undefined}
                   chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed} />
               )}
               <div className="flex min-h-0 flex-1 flex-col">
                 {!chromeCollapsed && (
                   <ViewToolbar query={gridQuery} onQuery={setGridQuery} display={display} onDisplay={setDisplay}
-                    columns={columns} onColumns={setColumns} />
+                    columns={gridColumns} onColumns={setGridColumns} defaults={columnDefaults} />
                 )}
                 {/* Point of view is a DATA context: which report, company, version you are reading.
                     Authoring a model has no point of view, so the bar goes with the mode. */}
                 {mode === "DATA" && !l100 && <PovBar />}
                 {hasMembers ? (
-                  <MemberGrid members={baseRows} columns={columns.visible} display={display}
+                  <MemberGrid members={gridRows} columns={gridColumns.visible} display={display}
+                    label={frame ? pluralNoun(frame.list.noun) : undefined}
+                    onChoose={frame?.list.role === "Model" ? chooseModel : undefined}
                     member={member} peek={peek} onPeek={setPeek}
                     gridMode={gridMode} bulkSel={bulkSel} onBulkSel={setBulkSel} onMove={moveRow}
                     /* Configuration is a MODEL surface; in DATA the gear inspects the member in Properties. */
@@ -375,9 +417,9 @@ export function AppShell() {
                       if (mode === "MODEL") { setMember(id); setPeek(null); setChooserOpen(false); }
                       else { setPeek(id); setRightOpen(true); }
                     }}
-                    emptyMessage={gridQuery ? `No members match “${gridQuery}”.`
+                    emptyMessage={gridQuery ? `Nothing matches “${gridQuery}”.`
                       : structure === null ? `${domain ?? "This domain"} has no structures yet. Add one from the structure bar to start listing members.`
-                      : undefined} />
+                      : frame?.list.empty} />
                 ) : (
                   <WorkspaceStub name={workspaceLabel(workspace)} />
                 )}
@@ -401,7 +443,7 @@ export function AppShell() {
           {showProperties && (
             <PropertiesPane open={rightOpen} width={rightShown} onOpen={setRightOpen} domain={domain} structure={structure}
               memberName={memberName} memberLocked={Boolean(memberById(peek ?? member)?.locked)}
-              member={memberById(peek ?? member)} />
+              member={memberById(peek ?? member)} fixtureSections={fixtureSections} />
           )}
         </main>
 
@@ -414,12 +456,22 @@ export function AppShell() {
         )}
 
         {adding && domain && structure && (
-          <AddMemberDialog domain={domain} structure={structure} existing={liveMembers.map((m) => m.name)}
+          <AddMemberDialog domain={domain} structure={structure}
+            existing={(nested ? nestedRows : liveMembers).map((m) => m.name)}
+            noun={frame?.list.noun} within={nested ? frame?.governing : null}
             fieldRules={l100 ? undefined : fieldRules[structure]}
             onCancel={() => setAdding(false)}
             onCreate={(n) => {
-              const m: Member = { id: `new-${crypto.randomUUID()}`, name: n.name, code: n.shortName || "—", type: "Standard",
+              /* Blank Short Name stays blank: the display falls back to Name / Code. */
+              const m: Member = { id: `new-${crypto.randomUUID()}`, name: n.name, code: n.shortName, type: "Standard",
                 locked: false, description: n.description, ...(Object.keys(n.attrs).length ? { attrs: n.attrs } : null) };
+              if (nested && frame) {
+                /* Joins the chosen Model's population; the structure's own records and views are untouched. */
+                setAddedMembers((a) => ({ ...a, [frame.list.key]: [...(a[frame.list.key] ?? []), m] }));
+                setAdding(false);
+                setPeek(m.id);
+                return;
+              }
               const all = [...members, m];
               setAddedMembers((a) => ({ ...a, [orderKey]: [...(a[orderKey] ?? []), m] }));
               /* The new member joins the master list and any rule view it matches; static lists are picked by hand. */

@@ -167,7 +167,7 @@ function SectionContent({ item, name, schemaSections, system, draft, onDraft, di
   if (id === "identity") {
     /* L100 decides what this tier sees: a hidden field is absent, a locked one is read-only. */
     const rows: Array<{ key: string; label: string; field: keyof Identity; area?: boolean }> = [
-      { key: "member_name", label: "Name | ID", field: "name" },
+      { key: "member_name", label: "Name / Code", field: "name" },
       { key: "short_name", label: "Short Name", field: "shortName" },
       { key: "description", label: "Description", field: "description", area: true },
       { key: "memo", label: "Memo", field: "memo", area: true },

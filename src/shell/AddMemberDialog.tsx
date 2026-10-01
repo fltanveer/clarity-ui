@@ -20,7 +20,7 @@ export interface NewMember {
 type IdKey = "name" | "shortName" | "description" | "memo";
 /* Same keys and labels as member configuration, so L100 field rules apply here too. */
 const IDENTITY: Array<{ key: IdKey; rule: string; label: string; area?: boolean }> = [
-  { key: "name", rule: "member_name", label: "Name | ID" },
+  { key: "name", rule: "member_name", label: "Name / Code" },
   { key: "shortName", rule: "short_name", label: "Short Name" },
   { key: "description", rule: "description", label: "Description", area: true },
   { key: "memo", rule: "memo", label: "Memo", area: true },
@@ -36,6 +36,10 @@ export interface AddMemberDialogProps {
   fieldRules?: Record<string, { label: string; hiddenInModel: boolean; lockedInModel: boolean }>;
   onCancel: () => void;
   onCreate: (m: NewMember) => void;
+  /** Declared business noun, e.g. "Person"; otherwise the structure's kind. */
+  noun?: string;
+  /** Governing Model the new record joins, e.g. "Workforce USA". */
+  within?: string | null;
 }
 
 /*
@@ -44,8 +48,8 @@ export interface AddMemberDialogProps {
  * structure's own dropdowns followed by one per child structure. Derived values
  * are not asked for: they are computed once the member exists.
  */
-export function AddMemberDialog({ domain, structure, existing, fieldRules, onCancel, onCreate }: AddMemberDialogProps) {
-  const kind = DIMENSION_SCHEMA[structure]?.kind ?? "member";
+export function AddMemberDialog({ domain, structure, existing, fieldRules, onCancel, onCreate, noun: declared, within }: AddMemberDialogProps) {
+  const kind = declared ?? DIMENSION_SCHEMA[structure]?.kind ?? "record";
   const noun = kind.toLowerCase();
   const errorId = useId();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -67,7 +71,7 @@ export function AddMemberDialog({ domain, structure, existing, fieldRules, onCan
     const name = draft.name.trim();
     if (!name) { setError(`Enter a name for this ${noun}.`); nameRef.current?.focus(); return; }
     if (existing.some((n) => n.toLowerCase() === name.toLowerCase())) {
-      setError(`${structure} already has a ${noun} called “${name}”. Choose a different name.`);
+      setError(`${within ?? structure} already has a ${noun} called “${name}”. Choose a different name.`);
       nameRef.current?.focus();
       return;
     }
@@ -78,7 +82,7 @@ export function AddMemberDialog({ domain, structure, existing, fieldRules, onCan
   };
 
   return (
-    <Dialog title={`New ${noun}`} subtitle={<>{domain} domain · {structure}</>} className="max-w-[30rem]"
+    <Dialog title={`New ${noun}`} subtitle={<>{domain} domain · {structure}{within ? <> · {within}</> : null}</>} className="max-w-[30rem]"
       icon={<DialogIcon tone="mode"><Plus size={16} /></DialogIcon>}
       onClose={onCancel} onSubmit={submit}
       footer={

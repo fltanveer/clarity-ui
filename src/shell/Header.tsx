@@ -12,14 +12,16 @@ export interface HeaderProps {
   domain: string | null;
   structure: string | null;
   memberName: string | null;
+  /** Declared Model rung, between the structure and the record; absent where none is declared. */
+  model?: string | null;
   l100: boolean;
 }
 
 const TITLES: Partial<Record<WorkspaceId, string>> = { dimensions: "Dimensions & Attributes" };
 
 /* Row 1 · window title over breadcrumb, context selectors, search, session chip. */
-export function Header({ workspace, domain, structure, memberName, l100 }: HeaderProps) {
-  const path = [workspaceLabel(workspace), domain, structure, memberName].filter(Boolean) as string[];
+export function Header({ workspace, domain, structure, memberName, model, l100 }: HeaderProps) {
+  const path = [workspaceLabel(workspace), domain, structure, model, memberName].filter(Boolean) as string[];
   const ctx = contextSelectors(workspace, domain);
   return (
     <header className="flex h-row-header shrink-0 items-center gap-4 border-b border-line-subtle bg-shell px-edge">
@@ -47,9 +49,9 @@ export function Header({ workspace, domain, structure, memberName, l100 }: Heade
   );
 }
 
-/* Fixed at 4 visible segments; deeper paths collapse in the middle. */
+/* Up to 5 visible segments (workspace › domain › structure › model › record); deeper paths collapse in the middle. */
 function Breadcrumb({ path }: { path: string[] }) {
-  const shown = path.length <= 4 ? path : [path[0], "…", ...path.slice(-2)];
+  const shown = path.length <= 5 ? path : [path[0], "…", ...path.slice(-3)];
   return (
     <nav aria-label="Breadcrumb">
       <ol className="mt-px flex gap-1.5 text-caption whitespace-nowrap text-fg-tertiary">

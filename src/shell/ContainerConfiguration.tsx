@@ -37,7 +37,7 @@ import { cx } from "../lib/cx";
 export interface ContainerSubject {
   /** The object being configured, as the user meets it: "Workspace", "Domain". */
   kind: string;
-  /** Its current name — the window title and the seed for Name | ID. */
+  /** Its current name — the window title and the seed for Name / Code. */
   label: string;
   /** Singular and plural seeds; a tab label is singular in one bar and plural in another. */
   name: string;
@@ -59,7 +59,8 @@ export interface ContainerSubject {
   /** Defined by ClarityOS: the name is locked and says why. */
   closed?: boolean;
   /** Domain Structure only: one contract serves both roles, so the pane says which it is showing. */
-  roles?: { kind: string; note: string };
+  /** declared: the Structure Type the fixture states, when it states one. */
+  roles?: { kind: string; note: string; declared?: "Parent" | "Child" };
   /** Classification rows, delivered by the resolved frame and never edited here. */
   classification?: ClassificationRow[];
 }
@@ -93,7 +94,7 @@ const STAMP = "2026-08-13 10:46";
 
 /* One declaration per identity field: the pane renders it, field settings renames it. */
 const IDENTITY_FIELDS: readonly (FieldSpec & { kindOnly?: "plural" | "windowTitle"; control: keyof Identity | "icon" | "color" })[] = [
-  { key: "member_name", label: "Name | ID", type: "String (Text)", system: true, control: "name",
+  { key: "member_name", label: "Name / Code", type: "String (Text)", system: true, control: "name",
     helper: "" },
   { key: "icon_name", label: "Icon", type: "Icon", control: "icon" },
   { key: "color_scheme", label: "Color", type: "Select", control: "color" },
@@ -136,7 +137,8 @@ export function ContainerConfiguration({
   };
   const seedGov: Governance = { order: "0", hidden: false, inactive: false, renamable: !subject.closed };
   const [section, setSection] = useState<SectionId>("identity");
-  const [role, setRole] = useState<Role>("Parent");
+  /* Open on the declared Structure Type; Parent only where none is declared. */
+  const [role, setRole] = useState<Role>(subject.roles?.declared ?? "Parent");
   /* Field settings: what each field is called and how it behaves. L100 work, so inline only.
      The shell owns them where it needs to apply them elsewhere; otherwise they are local. */
   const [ownSettings, setOwnSettings] = useState(() => seedFieldSettings(identityFieldsFor(subject)));
