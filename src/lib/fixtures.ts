@@ -33,8 +33,10 @@ export interface ResolvedFrame {
   mode: Mode;
   access: Access;
   /**
-   * What the pane is working on, shown as "Model | Parent". The role follows the
-   * mode (MODEL → Model, DATA → Record); the type is the structure's (Jam, 30 Sep).
+   * What the pane is working on, shown as "Model | Parent". The items are Models
+   * at All Models — and a single-Model dimension like Company IS all Models — and
+   * Records only once one specific Model is chosen among several (Jams, 30 Sep
+   * and 1 Oct). The type is the structure's.
    */
   context: { role: ItemRole; type: "Parent" | "Child" };
   /** The governing item: the Model in MODEL, the chosen Model in DATA (null before one is chosen). */
@@ -84,7 +86,7 @@ const REGION_COLUMNS = [col("name", "Name / Code"), col("short", "Short Name"), 
 
 const ids = (list: Member[]) => list.map((m) => m.id);
 const view = { available: true, defaultViewId: "master" } as const;
-const ctx = (mode: Mode, key: string) => ({ role: mode === "MODEL" ? "Model" as const : "Record" as const, type: STRUCTURE_TYPE[key] });
+const ctx = (role: ItemRole, key: string) => ({ role, type: STRUCTURE_TYPE[key] });
 
 /* Driver values — blue in the fixture: layout only, not business assumptions. */
 const drivers = (salary: string, hours: string, rate: string): PropertySectionDef[] => [
@@ -97,14 +99,14 @@ const drivers = (salary: string, hours: string, rate: string): PropertySectionDe
 
 const COMPANY: Record<Mode, ResolvedFrame> = {
   MODEL: {
-    path: { domain: "Company", structure: "Companies", model: "Company" }, mode: "MODEL", access: "user", context: ctx("MODEL", "Company:Companies"),
+    path: { domain: "Company", structure: "Companies", model: "Company" }, mode: "MODEL", access: "user", context: ctx("Model", "Company:Companies"),
     governing: "Company", modelSelector: { kind: "text", label: "Company" }, viewSelector: view,
     list: { role: "Record", noun: "Company", ids: ids(COMPANIES), key: "Company:Companies", empty: "No companies in this view." },
     add: { label: "Add Company", enabled: true }, assign: null, columns: COMPANY_COLUMNS,
   },
   /* Self set: the child of a company is the company itself — nothing to add or assign. */
   DATA: {
-    path: { domain: "Company", structure: "Companies", model: "Company" }, mode: "DATA", access: "user", context: ctx("DATA", "Company:Companies"),
+    path: { domain: "Company", structure: "Companies", model: "Company" }, mode: "DATA", access: "user", context: ctx("Model", "Company:Companies"),
     governing: "Company", modelSelector: { kind: "text", label: "Company" }, viewSelector: view,
     list: { role: "Record", noun: "Company", ids: ids(COMPANIES), key: "Company:Companies", empty: "No companies in this view." },
     add: null, assign: null, columns: COMPANY_COLUMNS,
@@ -119,12 +121,12 @@ const COMPANY: Record<Mode, ResolvedFrame> = {
 const REGION_LIST = { role: "Record" as const, noun: "Company Region", ids: ids(COMPANY_REGIONS), key: "Company:Company Regions", empty: "No company regions in this view." };
 const COMPANY_REGIONS_FRAME: Record<Mode, ResolvedFrame> = {
   MODEL: {
-    path: { domain: "Company", structure: "Company Regions", model: "Company Region" }, mode: "MODEL", access: "user", context: ctx("MODEL", "Company:Company Regions"),
+    path: { domain: "Company", structure: "Company Regions", model: "Company Region" }, mode: "MODEL", access: "user", context: ctx("Model", "Company:Company Regions"),
     governing: "Company Region", modelSelector: { kind: "text", label: "Company Region" }, viewSelector: view,
     list: REGION_LIST, add: { label: "Add Company Region", enabled: true }, assign: null, columns: REGION_COLUMNS,
   },
   DATA: {
-    path: { domain: "Company", structure: "Company Regions", model: "Company Region" }, mode: "DATA", access: "user", context: ctx("DATA", "Company:Company Regions"),
+    path: { domain: "Company", structure: "Company Regions", model: "Company Region" }, mode: "DATA", access: "user", context: ctx("Model", "Company:Company Regions"),
     governing: "Company Region", modelSelector: { kind: "text", label: "Company Region" }, viewSelector: view,
     list: REGION_LIST, add: null, assign: null, columns: REGION_COLUMNS,
   },
@@ -133,13 +135,14 @@ const COMPANY_REGIONS_FRAME: Record<Mode, ResolvedFrame> = {
 const PLAN_OPTIONS = [{ id: ALL_MODELS, label: "All Models" }, ...WORKFORCE_PLANS.map((p) => ({ id: p.id, label: p.name }))];
 const workforceData = (value: string, governing: string | null, list: ResolvedFrame["list"],
   add: ResolvedFrame["add"], columns: GridColumn[], sections?: ResolvedFrame["sections"]): ResolvedFrame => ({
-  path: { domain: "Workforce", structure: "Workforce Plans", model: "Workforce Plan" }, mode: "DATA", access: "user", context: ctx("DATA", "Workforce:Workforce Plans"),
+  path: { domain: "Workforce", structure: "Workforce Plans", model: "Workforce Plan" }, mode: "DATA", access: "user",
+  context: ctx(governing ? "Record" : "Model", "Workforce:Workforce Plans"),
   governing, modelSelector: { kind: "select", value, options: PLAN_OPTIONS }, viewSelector: view,
   list, add, assign: null, columns, ...(sections ? { sections } : null),
 });
 
 const WORKFORCE_MODEL: ResolvedFrame = {
-  path: { domain: "Workforce", structure: "Workforce Plans", model: "Workforce Plan" }, mode: "MODEL", access: "user", context: ctx("MODEL", "Workforce:Workforce Plans"),
+  path: { domain: "Workforce", structure: "Workforce Plans", model: "Workforce Plan" }, mode: "MODEL", access: "user", context: ctx("Model", "Workforce:Workforce Plans"),
   governing: "Workforce Plan", modelSelector: { kind: "text", label: "Workforce Plan" }, viewSelector: view,
   list: { role: "Record", noun: "Workforce Plan", ids: ids(WORKFORCE_PLANS), key: "Workforce:Workforce Plans", empty: "No workforce plans in this view." },
   add: { label: "Add Workforce Plan", enabled: true }, assign: null, columns: PLAN_COLUMNS,

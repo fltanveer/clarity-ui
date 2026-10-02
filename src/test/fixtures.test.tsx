@@ -101,25 +101,51 @@ describe("Company Regions · child structure", () => {
   });
 });
 
-describe("Model | Record context (Jam, 30 Sep)", () => {
-  it("the role follows the mode; the type follows the structure", async () => {
+describe("Model | Record context (Jams, 30 Sep and 1 Oct)", () => {
+  it("a single-Model dimension is all Models: Company and Company Regions read Model in both modes", async () => {
     const { user } = setup();
     const chip = (t: string) => within(leftPane()).getByText(t);
-    expect(chip("Record | Parent")).toBeInTheDocument();
+    expect(chip("Model | Parent")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
     expect(chip("Model | Parent")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Company Regions" }));
     expect(chip("Model | Child")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "DATA" }));
-    expect(chip("Record | Child")).toBeInTheDocument();
+    expect(chip("Model | Child")).toBeInTheDocument();
   });
 
-  it("Workforce reads Record | Parent in DATA, at All Models and inside a plan", async () => {
+  it("Workforce: Model at All Models; Record once a plan is chosen, and the View card names the plan", async () => {
     const { user } = setup();
     await openWorkforce(user);
-    expect(within(leftPane()).getByText("Record | Parent")).toBeInTheDocument();
+    expect(within(leftPane()).getByText("Model | Parent")).toBeInTheDocument();
+    expect(within(leftPane()).getByRole("button", { name: /^Workforce Plans: Master list/ })).toBeInTheDocument();
     await user.click(within(leftList()).getByRole("button", { name: "Workforce USA" }));
     expect(within(leftPane()).getByText("Record | Parent")).toBeInTheDocument();
+    expect(within(leftPane()).getByRole("button", { name: /^Workforce USA: Master list/ })).toBeInTheDocument();
+  });
+
+  it("at All Models, choosing a plan in the centre lists its people there", async () => {
+    const { user } = setup();
+    await openWorkforce(user);
+    const grid = () => screen.getByRole("list", { name: /^(Workforce Plans|People)$/ });
+    await user.click(within(grid()).getByRole("button", { name: /Workforce USA/ }));
+    expect(within(grid()).getAllByRole("listitem").map((li) => li.textContent)).toEqual([expect.stringContaining("Dave"), expect.stringContaining("Jack")]);
+  });
+});
+
+describe("Structures: add and edit read like a member's Identity", () => {
+  it("New Model Category opens the Identity card and adds the tab", async () => {
+    const { user } = setup();
+    await openWorkforce(user);
+    await user.click(screen.getByRole("button", { name: "MODEL" }));
+    await user.click(screen.getByRole("button", { name: "New Model Category" }));
+    const dialog = screen.getByRole("dialog", { name: "New model category" });
+    for (const f of ["Name / Code", "Short Name", "Description", "Memo"]) expect(within(dialog).getByRole("textbox", { name: f })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Create model category" }));
+    expect(within(dialog).getByText("Enter a name for this model category.")).toBeInTheDocument();
+    await user.type(within(dialog).getByRole("textbox", { name: "Name / Code" }), "Contractor Plans");
+    await user.click(within(dialog).getByRole("button", { name: "Create model category" }));
+    expect(screen.getByRole("tab", { name: /Contractor Plans$/ })).toHaveAttribute("aria-selected", "true");
   });
 });
 

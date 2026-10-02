@@ -357,6 +357,7 @@ export function AppShell() {
               listLabel={frame ? pluralNoun(frame.list.noun) : undefined}
               onChoose={frame?.list.role === "Model" ? chooseModel : undefined}
               emptyMessage={frame?.list.empty} context={frame?.context}
+              viewScope={nested ? frame?.governing : null}
               chooserOpen={chooserOpen} onChooser={(o) => { setChooserOpen(o); if (o) exitGridMode(); }} />
           )}
           {hasMembers && !leftCollapsed && (

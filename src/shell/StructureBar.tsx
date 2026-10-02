@@ -5,7 +5,7 @@ import {
   isAddToken, isPipe, plusLabel, sectionOf, type StructureSection, type WorkspaceId,
 } from "../lib/nav";
 import { MenuDivider, MenuItem, Popover } from "./Popover";
-import { DeleteStructureDialog, EditStructureDialog } from "./StructureDialogs";
+import { AddStructureDialog, DeleteStructureDialog, EditStructureDialog, type StructureIdentity } from "./StructureDialogs";
 import { Pipe } from "./controls";
 import { cx } from "../lib/cx";
 
@@ -26,10 +26,12 @@ export interface StructureBarProps {
  * Alt+PgDn switch tabs (Spec 110 §6.1); ←/→ move within the tab list.
  */
 export function StructureBar({ workspace, domain, structure, onStructure, canAuthor, l100, onConfigure }: StructureBarProps) {
-  const raw = domain ? BOTTOM_TABS[domain] ?? [] : [];
+  /* Structures added this session, per domain, after the domain's own. */
+  const [added, setAdded] = useState<Record<string, string[]>>({});
+  const raw = domain ? [...(BOTTOM_TABS[domain] ?? []), ...(added[domain] ?? [])] : [];
   /* Renames and deletions made here, keyed Domain:Structure (the structure id stays the original name). */
   const [labels, setLabels] = useState<Record<string, string>>({});
-  const [descriptions, setDescriptions] = useState<Record<string, string>>({});
+  const [identities, setIdentities] = useState<Record<string, Partial<StructureIdentity>>>({});
   const [removed, setRemoved] = useState<string[]>([]);
   const key = (t: string) => `${domain}:${t}`;
   const labelOf = (t: string) => labels[key(t)] ?? t;
@@ -50,6 +52,9 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
   const allRef = useRef<HTMLButtonElement>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  /* "New Model Category" → "Model Category": what one structure is called in this domain. */
+  const addNoun = addLabel?.replace(/^(Add|New) /, "") ?? "Structure";
   const closed = domain ? CLOSED_DOMAINS.has(domain) : false;
 
   const tab = (t: string, sectionId?: string) => (
@@ -79,7 +84,8 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
           </button>
         )}
         {canAuthor && hasAdd && addLabel && (
-          <button type="button" className="flex h-[1.375rem] cursor-pointer items-center gap-1 rounded-control px-2 text-caption font-medium whitespace-nowrap text-fg-secondary hover:bg-hover">
+          <button type="button" aria-haspopup="dialog" onClick={() => setAdding(true)}
+            className="flex h-[1.375rem] cursor-pointer items-center gap-1 rounded-control px-2 text-caption font-medium whitespace-nowrap text-fg-secondary hover:bg-hover">
             <Plus size={12} aria-hidden /> {addLabel}
           </button>
         )}
@@ -131,13 +137,23 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
 
       {editing && domain && (
         <EditStructureDialog domain={domain} name={labelOf(editing)} system={NON_DELETABLE_STRUCTURES.has(key(editing))}
-          closed={closed} description={descriptions[key(editing)] ?? ""}
+          closed={closed} identity={identities[key(editing)]}
           siblings={tabs.filter((t) => t !== editing).map(labelOf)}
           onCancel={() => setEditing(null)}
-          onSave={({ name: next, description }) => {
-            setLabels((l) => ({ ...l, [key(editing)]: next }));
-            setDescriptions((d) => ({ ...d, [key(editing)]: description }));
+          onSave={(next) => {
+            setLabels((l) => ({ ...l, [key(editing)]: next.name }));
+            setIdentities((d) => ({ ...d, [key(editing)]: next }));
             setEditing(null);
+          }} />
+      )}
+      {adding && domain && (
+        <AddStructureDialog domain={domain} noun={addNoun} siblings={tabs.map(labelOf)}
+          onCancel={() => setAdding(false)}
+          onCreate={(next) => {
+            setAdded((a) => ({ ...a, [domain]: [...(a[domain] ?? []), next.name] }));
+            setIdentities((d) => ({ ...d, [`${domain}:${next.name}`]: next }));
+            setAdding(false);
+            onStructure(next.name);
           }} />
       )}
       {confirm && domain && (

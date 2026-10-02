@@ -295,7 +295,7 @@ describe("AppShell", () => {
     await user.click(screen.getByRole("button", { name: "Companies options" }));
     await user.click(screen.getByRole("menuitem", { name: /Edit/ }));
     const dialog = screen.getByRole("dialog", { name: "Edit structure" });
-    const name = within(dialog).getByRole("textbox", { name: "Name" });
+    const name = within(dialog).getByRole("textbox", { name: "Name / Code" });
     expect(name).toHaveValue("Companies");
 
     await user.clear(name);

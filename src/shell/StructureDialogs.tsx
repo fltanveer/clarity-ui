@@ -1,6 +1,6 @@
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { Boxes, CircleAlert, GitBranch, Layers, Lock, Pencil, Plus, Trash2, Users } from "lucide-react";
-import { controlClass } from "../components/ConfigFields";
+import { FieldRow, controlClass } from "../components/ConfigFields";
 import { ChromeButton } from "./controls";
 import { Dialog, dangerButtonClass } from "./Dialog";
 import { cx } from "../lib/cx";
@@ -15,6 +15,16 @@ export const DialogIcon = ({ tone, children }: { tone: "mode" | "danger"; childr
   </span>
 );
 
+/* A structure's identity — the same four fields, in the same rows, as a member's. */
+export interface StructureIdentity { name: string; shortName: string; description: string; memo: string }
+const EMPTY_IDENTITY: StructureIdentity = { name: "", shortName: "", description: "", memo: "" };
+const IDENTITY_ROWS: Array<{ key: keyof StructureIdentity; label: string; area?: boolean }> = [
+  { key: "name", label: "Name / Code" },
+  { key: "shortName", label: "Short Name" },
+  { key: "description", label: "Description", area: true },
+  { key: "memo", label: "Memo", area: true },
+];
+
 export interface EditStructureDialogProps {
   domain: string;
   name: string;
@@ -24,91 +34,132 @@ export interface EditStructureDialogProps {
   closed: boolean;
   /** Names of the other structures in this domain, for the uniqueness check. */
   siblings: string[];
-  description: string;
+  identity?: Partial<StructureIdentity>;
   onCancel: () => void;
-  onSave: (next: { name: string; description: string }) => void;
+  onSave: (next: StructureIdentity) => void;
 }
 
 /*
  * Edit a structure. What is editable follows the structure's context:
- *   ordinary  → name + description
- *   required  → name + description, with a note that it cannot be deleted
- *   closed    → description only; the name is locked with its reason
+ *   ordinary  → every identity field
+ *   required  → every identity field, with a note that it cannot be deleted
+ *   closed    → the name is locked with its reason; the rest stay editable
  * Validation runs on Save and says how to fix it, next to the field.
  */
-export function EditStructureDialog({ domain, name, system, closed, siblings, description, onCancel, onSave }: EditStructureDialogProps) {
-  const nameId = useId();
+export function EditStructureDialog({ domain, name, system, closed, siblings, identity, onCancel, onSave }: EditStructureDialogProps) {
+  return (
+    <StructureIdentityDialog title="Edit structure" subtitle={<>{domain} domain · {name}</>} submitLabel="Save changes"
+      icon={<Pencil size={16} />} domain={domain} siblings={siblings} nameLocked={closed}
+      initial={{ ...EMPTY_IDENTITY, ...identity, name }} onCancel={onCancel} onSave={onSave}
+      lead={
+        <ul aria-label="Structure facts" className="flex flex-wrap gap-1.5">
+          <Fact icon={<Boxes size={12} />}>{kindOf(name)}</Fact>
+          <Fact icon={<Users size={12} />}>5 members</Fact>
+          <Fact icon={<GitBranch size={12} />}>Used by 3 structures</Fact>
+        </ul>
+      }
+      foot={system && (
+        <p className="flex items-start gap-2 rounded-panel border border-line-subtle bg-surface px-3 py-2 text-caption leading-body text-fg-secondary">
+          <Lock size={12} aria-hidden className="mt-0.5 shrink-0 text-fg-tertiary" />
+          Required structure: it can be renamed, but it can’t be deleted.
+        </p>
+      )} />
+  );
+}
+
+export interface AddStructureDialogProps {
+  domain: string;
+  /** What one structure is called here, e.g. "Model Category"; otherwise "structure". */
+  noun: string;
+  siblings: string[];
+  onCancel: () => void;
+  onCreate: (next: StructureIdentity) => void;
+}
+
+/* Add a structure: the member's Add flow, applied one level up. */
+export function AddStructureDialog({ domain, noun, siblings, onCancel, onCreate }: AddStructureDialogProps) {
+  const lower = noun.toLowerCase();
+  return (
+    <StructureIdentityDialog title={`New ${lower}`} subtitle={<>{domain} domain · added after the last {lower}</>}
+      submitLabel={`Create ${lower}`} icon={<Plus size={16} />} domain={domain} siblings={siblings} noun={lower}
+      initial={EMPTY_IDENTITY} onCancel={onCancel} onSave={onCreate} />
+  );
+}
+
+function StructureIdentityDialog({ title, subtitle, submitLabel, icon, domain, siblings, noun = "structure", nameLocked = false,
+  initial, lead, foot, onCancel, onSave }: {
+  title: string; subtitle: ReactNode; submitLabel: string; icon: ReactNode; domain: string; siblings: string[];
+  noun?: string; nameLocked?: boolean; initial: StructureIdentity; lead?: ReactNode; foot?: ReactNode;
+  onCancel: () => void; onSave: (next: StructureIdentity) => void;
+}) {
   const errorId = useId();
-  const descId = useId();
   const nameRef = useRef<HTMLInputElement>(null);
-  const [draftName, setDraftName] = useState(name);
-  const [draftDesc, setDraftDesc] = useState(description);
+  const [draft, setDraft] = useState(initial);
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
-    const next = draftName.trim();
-    if (!closed) {
-      if (!next) { setError("Enter a name for this structure."); nameRef.current?.focus(); return; }
+    const next = draft.name.trim();
+    if (!nameLocked) {
+      if (!next) { setError(`Enter a name for this ${noun}.`); nameRef.current?.focus(); return; }
       if (siblings.some((s) => s.toLowerCase() === next.toLowerCase())) {
         setError(`Another ${domain} structure is already called “${next}”. Choose a different name.`);
         nameRef.current?.focus();
         return;
       }
     }
-    onSave({ name: closed ? name : next, description: draftDesc.trim() });
+    onSave({ name: nameLocked ? initial.name : next, shortName: draft.shortName.trim(),
+      description: draft.description.trim(), memo: draft.memo.trim() });
   };
 
   return (
-    <Dialog title="Edit structure" subtitle={<>{domain} domain · {name}</>}
-      icon={<DialogIcon tone="mode"><Pencil size={16} /></DialogIcon>}
+    <Dialog title={title} subtitle={subtitle} className="max-w-[36rem]"
+      icon={<DialogIcon tone="mode">{icon}</DialogIcon>}
       onClose={onCancel} onSubmit={submit}
       footer={
         <>
           <ChromeButton onClick={onCancel}>Cancel</ChromeButton>
-          <ChromeButton type="submit" variant="primary" className="h-control-h">Save changes</ChromeButton>
+          <ChromeButton type="submit" variant="primary" className="h-control-h">{submitLabel}</ChromeButton>
         </>
       }>
-      <ul aria-label="Structure facts" className="mb-4 flex flex-wrap gap-1.5">
-        <Fact icon={<Boxes size={12} />}>{kindOf(name)}</Fact>
-        <Fact icon={<Users size={12} />}>5 members</Fact>
-        <Fact icon={<GitBranch size={12} />}>Used by 3 structures</Fact>
-      </ul>
-
-      <div className="flex flex-col gap-4">
-        <div>
-          <label htmlFor={nameId} className="mb-1 block text-caption font-medium text-fg-secondary">Name</label>
-          <input ref={nameRef} id={nameId} value={draftName} disabled={closed} autoComplete="off" spellCheck={false}
-            onChange={(e) => { setDraftName(e.target.value); setError(null); }}
-            aria-invalid={error ? "true" : undefined} aria-describedby={error ? errorId : undefined}
-            className={cx(controlClass, "h-control-form", error && "border-danger-text hover:border-danger-text")} />
-          {error && (
-            <p id={errorId} className="mt-1 flex items-start gap-1 text-caption text-danger-text">
-              <CircleAlert size={12} aria-hidden className="mt-0.5 shrink-0" /> {error}
-            </p>
-          )}
-          {closed && (
-            <p className="mt-1 flex items-start gap-1 text-caption text-fg-tertiary">
-              <Lock size={11} aria-hidden className="mt-0.5 shrink-0" />
-              Structures in the {domain} domain are defined by ClarityOS, so the name can’t be changed.
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor={descId} className="mb-1 block text-caption font-medium text-fg-secondary">
-            Description <span className="font-normal text-fg-tertiary">(optional)</span>
-          </label>
-          <textarea id={descId} rows={3} value={draftDesc} onChange={(e) => setDraftDesc(e.target.value)}
-            placeholder="What this structure groups, and who uses it"
-            className={cx(controlClass, "min-h-20 resize-y py-1.5 leading-body")} />
-        </div>
-
-        {system && (
-          <p className="flex items-start gap-2 rounded-panel border border-line-subtle bg-shell px-3 py-2 text-caption leading-body text-fg-secondary">
-            <Lock size={12} aria-hidden className="mt-0.5 shrink-0 text-fg-tertiary" />
-            Required structure: it can be renamed, but it can’t be deleted.
+      {/* The member's Identity page, on its canvas: a structure reads the same way a member does. */}
+      <div className="-mx-5 -my-4 flex flex-col gap-3 bg-canvas p-4">
+        {lead}
+        <section aria-label="Identity">
+          <p className="mb-2 flex items-baseline gap-2 text-caption font-semibold tracking-label text-fg-secondary uppercase">
+            Identity <span className="font-normal tracking-normal text-fg-tertiary normal-case">{IDENTITY_ROWS.length} fields</span>
           </p>
-        )}
+          <div className="rounded-panel border border-line-subtle bg-surface px-4">
+            {IDENTITY_ROWS.map((r) => {
+              const isName = r.key === "name";
+              const hint = isName && error ? (
+                <p id={errorId} className="mt-1 flex items-start gap-1 text-caption text-danger-text">
+                  <CircleAlert size={12} aria-hidden className="mt-0.5 shrink-0" /> {error}
+                </p>
+              ) : isName && nameLocked ? (
+                <p className="mt-1 flex items-start gap-1 text-caption text-fg-tertiary">
+                  <Lock size={11} aria-hidden className="mt-0.5 shrink-0" />
+                  Structures in the {domain} domain are defined by ClarityOS, so the name can’t be changed.
+                </p>
+              ) : undefined;
+              return (
+                <FieldRow key={r.key} label={r.label} hint={hint}>
+                  {(id) => r.area ? (
+                    <textarea id={id} rows={2} value={draft[r.key]} onChange={(e) => setDraft({ ...draft, [r.key]: e.target.value })}
+                      className={cx(controlClass, "min-h-16 resize-y py-1.5 leading-body")} />
+                  ) : (
+                    <input id={id} ref={isName ? nameRef : undefined} value={draft[r.key]} disabled={isName && nameLocked}
+                      autoComplete="off" spellCheck={false} aria-required={isName || undefined}
+                      onChange={(e) => { setDraft({ ...draft, [r.key]: e.target.value }); if (isName) setError(null); }}
+                      aria-invalid={isName && error ? "true" : undefined}
+                      aria-describedby={isName && error ? errorId : undefined}
+                      className={cx(controlClass, "h-control-form", isName && error && "border-danger-text hover:border-danger-text")} />
+                  )}
+                </FieldRow>
+              );
+            })}
+          </div>
+        </section>
+        {foot}
       </div>
     </Dialog>
   );

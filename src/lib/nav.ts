@@ -142,7 +142,8 @@ export function plusLabel(workspace: WorkspaceId, domain: string | null): string
   if (workspace === "insights") return null;
   if (domain === "Calendar") return "Add Calendar";
   if (domain === "Picklist") return "Add Picklist";
-  if (workspace === "operational") return "New Model";
+  /* Operational structures are Model Categories: each one holds Models (Jam, 1 Oct). */
+  if (workspace === "operational") return "New Model Category";
   return "Add Subcategory";
 }
 

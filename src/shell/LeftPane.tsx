@@ -41,6 +41,8 @@ export interface LeftPaneProps {
   emptyMessage?: string;
   /** What the list is, as declared: Model in MODEL mode, Record in DATA; Parent or Child. */
   context?: ResolvedFrame["context"];
+  /** What the View card's view is of: the chosen Model once one is chosen, else the structure. */
+  viewScope?: string | null;
 }
 
 export interface AddAction { label: string; enabled: boolean; reason?: string }
@@ -54,7 +56,7 @@ export interface AddAction { label: string; enabled: boolean; reason?: string }
  */
 export function LeftPane({
   collapsed, width, onCollapsed, member, onMember, peek, structure, view, members, chooserOpen, onChooser,
-  hidden = [], onAddMember, add, modelSelector, onModel, listed, listLabel, onChoose, emptyMessage, context,
+  hidden = [], onAddMember, add, modelSelector, onModel, listed, listLabel, onChoose, emptyMessage, context, viewScope,
 }: LeftPaneProps) {
   const [q, setQ] = useState("");
   /* Search is one icon until asked for; closing it clears the query so nothing stays filtered unseen. */
@@ -66,6 +68,8 @@ export function LeftPane({
     [listed, members, view, q, hidden],
   );
   const addReasonId = "left-pane-add-reason";
+  /* A chosen Model narrows the view to that Model: "Workforce USA · Master list", not the structure's. */
+  const scope = viewScope ?? structure;
 
   if (collapsed) {
     const name = members.find((m) => m.id === member)?.name;
@@ -152,7 +156,7 @@ export function LeftPane({
               : "border-line-strong bg-surface shadow-lift has-[button:hover]:border-line-control-hover",
           )}>
             <button type="button" aria-current={member === null ? "true" : undefined}
-              aria-label={`${structure ?? "Structure"}: ${view.name}. Show all members`}
+              aria-label={`${scope ?? "Structure"}: ${view.name}. Show all members`}
               onClick={() => { onMember(null); onChooser(false); }}
               className="group/body flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 py-1.5 ps-1.5 text-start">
               {/* Gradients do not interpolate, so the wash is a layer that scales in from the leading edge. */}
@@ -166,7 +170,7 @@ export function LeftPane({
                 <Layers size={15} strokeWidth={1.75} />
               </span>
               <span aria-hidden className="min-w-0 flex-1">
-                <span className="block truncate text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">{structure}</span>
+                <span className="block truncate text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">{scope}</span>
                 <span className="block truncate text-ui font-semibold text-fg-primary">{view.name}</span>
               </span>
             </button>
