@@ -7,6 +7,7 @@ import {
 import { MenuDivider, MenuItem, Popover } from "./Popover";
 import { AddStructureDialog, DeleteStructureDialog, EditStructureDialog, type StructureIdentity } from "./StructureDialogs";
 import { Pipe } from "./controls";
+import { term } from "../lib/terms";
 import { cx } from "../lib/cx";
 
 export interface StructureBarProps {
@@ -205,6 +206,7 @@ function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, on
       <button id={`structure-tab-${name}`} type="button" role="tab" aria-selected={on} tabIndex={on ? 0 : -1}
         aria-describedby={sectionId}
         onClick={onSelect}
+        {...term("Domain Structure")}
         className={cx(
           "flex h-full cursor-pointer items-center gap-1.5 border-b-2 ps-3 text-caption whitespace-nowrap",
           showCaret ? "pe-1" : "pe-3",

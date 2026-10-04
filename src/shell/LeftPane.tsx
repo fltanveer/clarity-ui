@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowLeftRight, ChevronDown, ChevronLeft, ChevronRight, Laye
 import type { Member, MemberView } from "../lib/members";
 import type { ModelSelector, ResolvedFrame } from "../lib/fixtures";
 import { cx } from "../lib/cx";
+import { term } from "../lib/terms";
 import { VIEW_SWITCHER_ANCHOR } from "./ViewSwitcher";
 
 export interface LeftPaneProps {
@@ -158,6 +159,7 @@ export function LeftPane({
             <button type="button" aria-current={member === null ? "true" : undefined}
               aria-label={`${scope ?? "Structure"}: ${view.name}. Show all members`}
               onClick={() => { onMember(null); onChooser(false); }}
+              {...term("View")}
               className="group/body flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 py-1.5 ps-1.5 text-start">
               {/* Gradients do not interpolate, so the wash is a layer that scales in from the leading edge. */}
               {!(member === null || chooserOpen) && (
@@ -236,11 +238,11 @@ const sentence = (t: string) => t.charAt(0) + t.slice(1).toLowerCase();
  *                   exactly where the eye already is; the dropdown switches plans.
  */
 function ModelRow({ selector, onModel, context }: { selector: ModelSelector; onModel?: (id: string) => void; context?: ResolvedFrame["context"] }) {
-  const eyebrow = <p id="left-pane-model-label" className="ps-0.5 text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">Model</p>;
+  const eyebrow = <p id="left-pane-model-label" {...term("Model")} className="ps-0.5 text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">Model</p>;
   /* Switching mode flips the role in place: the same list reads as Models, then as Records. */
   const chip = context && (
     <span className="shrink-0 rounded-chip bg-mode-soft px-1.5 py-0.5 text-micro font-semibold whitespace-nowrap text-mode-ink">
-      {context.role} | {context.type}
+      <span {...term("Role")}>{context.role}</span> | <span {...term("Structure Type")}>{context.type}</span>
     </span>
   );
   const top = (lead: ReactNode) => <div className="mb-1 flex min-h-5 items-center justify-between gap-2">{lead}{chip}</div>;

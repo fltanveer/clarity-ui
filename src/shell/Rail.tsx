@@ -1,6 +1,7 @@
 import { PanelLeftClose, PanelLeftOpen, Settings, Settings2, ShieldAlert } from "lucide-react";
 import { WORKSPACES, WORKSPACE_ICON, type WorkspaceId } from "../lib/nav";
 import { cx } from "../lib/cx";
+import { term } from "../lib/terms";
 
 export interface RailProps {
   workspace: WorkspaceId;
@@ -75,7 +76,7 @@ export function Rail({ workspace, onWorkspace, expanded, onExpanded, l100, onL10
                 aria-current={!platform && on ? "page" : undefined}
                 aria-pressed={platform ? l100 : undefined}
                 aria-label={expanded ? undefined : ws.label}
-                title={platform ? (l100 ? "Leave Structure Administration" : "Enter Structure Administration") : expanded ? undefined : ws.label}
+                {...term(platform ? "Access Level" : "Workspace")}
                 className={cx(
                   "relative flex h-8 w-full cursor-pointer items-center gap-2.5 text-start text-ui whitespace-nowrap",
                   expanded ? "px-edge" : "justify-center",

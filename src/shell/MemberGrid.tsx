@@ -2,6 +2,7 @@ import { Check, Lock, Menu, Settings } from "lucide-react";
 import type { Member } from "../lib/members";
 import type { DisplaySettings, GridColumn, GridMode } from "./types";
 import { cx } from "../lib/cx";
+import { term } from "../lib/terms";
 
 export interface MemberGridProps {
   members: Member[];
@@ -89,7 +90,7 @@ export function MemberGrid({ members, columns, display, member, peek, onPeek, gr
           ) : null}
         </span>
         {columns.map((c) => (
-          <span key={c.id} className={cx("truncate", c.id === "name" ? "min-w-0 flex-1" : cx(COL_WIDTH[c.id] ?? "w-30", "shrink-0"))}>{c.label}</span>
+          <span key={c.id} {...term("Property")} className={cx("truncate", c.id === "name" ? "min-w-0 flex-1" : cx(COL_WIDTH[c.id] ?? "w-30", "shrink-0"))}>{c.label}</span>
         ))}
         <span className="w-5 shrink-0" />
       </div>

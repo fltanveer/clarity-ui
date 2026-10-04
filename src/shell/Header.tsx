@@ -6,6 +6,7 @@ import { Popover } from "./Popover";
 import { ChromeButton } from "./controls";
 import { Drawer } from "./Drawer";
 import { cx } from "../lib/cx";
+import { term, type Term } from "../lib/terms";
 
 export interface HeaderProps {
   workspace: WorkspaceId;
@@ -21,7 +22,8 @@ const TITLES: Partial<Record<WorkspaceId, string>> = { dimensions: "Dimensions &
 
 /* Row 1 · window title over breadcrumb, context selectors, search, session chip. */
 export function Header({ workspace, domain, structure, memberName, model, l100 }: HeaderProps) {
-  const path = [workspaceLabel(workspace), domain, structure, model, memberName].filter(Boolean) as string[];
+  const path = ([[workspaceLabel(workspace), "Workspace"], [domain, "Domain"], [structure, "Domain Structure"],
+    [model, "Model"], [memberName, "Record"]] as Array<[string | null, Term]>).filter((s): s is [string, Term] => !!s[0]);
   const ctx = contextSelectors(workspace, domain);
   return (
     <header className="flex h-row-header shrink-0 items-center gap-4 border-b border-line-subtle bg-shell px-edge">
@@ -50,15 +52,16 @@ export function Header({ workspace, domain, structure, memberName, model, l100 }
 }
 
 /* Up to 5 visible segments (workspace › domain › structure › model › record); deeper paths collapse in the middle. */
-function Breadcrumb({ path }: { path: string[] }) {
-  const shown = path.length <= 5 ? path : [path[0], "…", ...path.slice(-3)];
+function Breadcrumb({ path }: { path: Array<[string, Term]> }) {
+  const shown = path.length <= 5 ? path : [path[0], ["…", null] as const, ...path.slice(-3)];
   return (
     <nav aria-label="Breadcrumb">
       <ol className="mt-px flex gap-1.5 text-caption whitespace-nowrap text-fg-tertiary">
-        {shown.map((seg, i) => (
+        {shown.map(([seg, t], i) => (
           <Fragment key={`${seg}-${i}`}>
             {i > 0 && <li aria-hidden className="text-fg-icon">›</li>}
             <li aria-current={i === shown.length - 1 ? "location" : undefined}
+              {...(t ? term(t) : null)}
               className={cx(i === shown.length - 1 && path.length > 1 && "italic")}>
               {seg}
             </li>
@@ -123,6 +126,7 @@ function SessionChip({ l100 }: { l100: boolean }) {
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
+        {...term("Organization")}
         className="flex min-w-0 cursor-pointer items-center gap-2 rounded-control px-1 py-0.5 text-start hover:bg-hover aria-expanded:bg-hover"
       >
         <span aria-hidden className="grid size-[1.625rem] shrink-0 place-items-center rounded-full border border-line-strong bg-mode-soft text-caption font-bold text-mode-ink">

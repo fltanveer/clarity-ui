@@ -101,10 +101,12 @@ describe("Company Regions · child structure", () => {
   });
 });
 
+/* The chip's two halves are separate hover targets, so match on the chip's whole text. */
+const chip = (t: string) => within(leftPane()).getByText((_, el) => el?.tagName === "SPAN" && el.textContent === t && el.children.length === 2);
+
 describe("Model | Record context (Jams, 30 Sep and 1 Oct)", () => {
   it("a single-Model dimension is all Models: Company and Company Regions read Model in both modes", async () => {
     const { user } = setup();
-    const chip = (t: string) => within(leftPane()).getByText(t);
     expect(chip("Model | Parent")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
     expect(chip("Model | Parent")).toBeInTheDocument();
@@ -117,10 +119,10 @@ describe("Model | Record context (Jams, 30 Sep and 1 Oct)", () => {
   it("Workforce: Model at All Models; Record once a plan is chosen, and the View card names the plan", async () => {
     const { user } = setup();
     await openWorkforce(user);
-    expect(within(leftPane()).getByText("Model | Parent")).toBeInTheDocument();
+    expect(chip("Model | Parent")).toBeInTheDocument();
     expect(within(leftPane()).getByRole("button", { name: /^Workforce Plans: Master list/ })).toBeInTheDocument();
     await user.click(within(leftList()).getByRole("button", { name: "Workforce USA" }));
-    expect(within(leftPane()).getByText("Record | Parent")).toBeInTheDocument();
+    expect(chip("Record | Parent")).toBeInTheDocument();
     expect(within(leftPane()).getByRole("button", { name: /^Workforce USA: Master list/ })).toBeInTheDocument();
   });
 

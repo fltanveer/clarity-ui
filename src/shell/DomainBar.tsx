@@ -5,6 +5,7 @@ import type { Mode } from "./types";
 import { MenuDivider, MenuItem, Popover } from "./Popover";
 import { Pipe } from "./controls";
 import { cx } from "../lib/cx";
+import { term } from "../lib/terms";
 import { AddDomainDialog, DeleteDomainDialog } from "./StructureDialogs";
 
 export interface DomainBarProps {
@@ -132,6 +133,7 @@ function DomainTab({ name, on, onSelect, canEdit, system, onConfigure, onDelete 
         aria-selected={on}
         tabIndex={on ? 0 : -1}
         onClick={onSelect}
+        {...term("Domain")}
         className={cx(
           "-mb-0.5 cursor-pointer border-b-2 px-tab-inset text-ui whitespace-nowrap",
           on ? "border-mode-solid font-semibold text-fg-primary" : "border-transparent text-fg-tertiary hover:text-fg-primary",
@@ -160,7 +162,7 @@ function DomainTab({ name, on, onSelect, canEdit, system, onConfigure, onDelete 
 /* Two-button pill [DATA | MODEL]; the active side takes the mode colour. */
 export function ModePill({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => void }) {
   return (
-    <div role="group" aria-label="Mode" className="flex gap-0.5 rounded-panel border border-line-subtle bg-shell-alt p-0.5">
+    <div role="group" aria-label="Mode" {...term("Mode")} className="flex gap-0.5 rounded-panel border border-line-subtle bg-shell-alt p-0.5">
       {(["DATA", "MODEL"] as const).map((m) => {
         const on = m === mode;
         return (
@@ -181,7 +183,7 @@ export function ModePill({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => vo
 
 function L100Chip({ onExit }: { onExit: () => void }) {
   return (
-    <span role="status" className="flex h-control-h shrink-0 items-center gap-2 rounded-panel whitespace-nowrap bg-l100-solid ps-2.5 pe-1 text-caption font-semibold text-fg-on-accent shadow-lift on-bar">
+    <span role="status" {...term("Access Level")} className="flex h-control-h shrink-0 items-center gap-2 rounded-panel whitespace-nowrap bg-l100-solid ps-2.5 pe-1 text-caption font-semibold text-fg-on-accent shadow-lift on-bar">
       <ShieldAlert size={13} aria-hidden /> L100 · Structure Administration
       <button type="button" onClick={onExit} aria-label="Exit Structure Administration"
         className="grid size-5 cursor-pointer place-items-center rounded-[3px] hover:bg-on-bar-hover">

@@ -8,6 +8,7 @@ import { Header } from "./Header";
 import { DomainBar } from "./DomainBar";
 import { ActionToolbar, GridModeBar, PovBar, ViewToolbar } from "./Toolbars";
 import { LeftPane } from "./LeftPane";
+import { TermTip } from "./TermTip";
 import { MemberGrid } from "./MemberGrid";
 import { PropertiesPane } from "./PropertiesPane";
 import { StructureBar } from "./StructureBar";
@@ -493,6 +494,7 @@ export function AppShell() {
             liveMembers.map((m) => m.name)))} />
         <Footer />
       </div>
+      <TermTip />
     </div>
   );
 }

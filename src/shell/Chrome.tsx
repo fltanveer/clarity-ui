@@ -7,7 +7,7 @@ export function Footer() {
       <span role="status">All changes saved · 14:22</span>
       <span>No range selected</span>
       <span className="ms-auto">© BudgetNOW Inc. 2020–2026</span>
-      <span>V.4.13 | Build 2026-08-18</span>
+      <span>v{__APP_VERSION__} | Build {__BUILD_DATE__}{__BUILD_COMMIT__ && ` · ${__BUILD_COMMIT__}`}</span>
     </footer>
   );
 }
