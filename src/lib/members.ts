@@ -192,17 +192,41 @@ export const ACCOUNT_GROUP_MEMBERS = groupRows(ACCOUNT_GROUPS, ACCOUNTS);
 /*
  * Workforce (fixture: ClarityOS_Fixture_Company_Regions_Workforce, v0.5).
  * Workforce Plans are Records in MODEL context and carry the Model role in
- * DATA context. People sit under a plan; only Workforce USA has any.
+ * DATA context. People sit under a plan.
  */
 export const WORKFORCE_PLANS = rows([
   ["wf-usa", "Workforce USA", "WF US", "United States workforce plan"],
   ["wf-can", "Workforce Canada", "WF CA", "Canadian workforce plan"],
 ]);
-/* No Short Name or Description supplied for people: left blank, not invented. */
-export const PEOPLE = rows([
-  ["ps-dave", "Dave", "", ""],
-  ["ps-jack", "Jack", "", ""],
+/*
+ * People and their drivers. Dave and Jack are the fixture's; everyone else is
+ * DUMMY demo data added at the user's request (2026-10-05), not client data.
+ * Hourly rate is derived: Salary ÷ Hours worked. No Short Name or Description
+ * is supplied for anyone, so those stay blank.
+ */
+type PersonRow = [id: string, name: string, salary: number, hours: number];
+const money = (n: number) => n.toLocaleString("en-US");
+const rate = (salary: number, hours: number) => (salary / hours).toFixed(2);
+const people = (list: PersonRow[]): Member[] => rows(list.map(([id, name, salary, hours]): Row => [id, name, "", "", {
+  Salary: money(salary), "Hours worked": money(hours), "Hourly rate": rate(salary, hours),
+}]));
+
+export const PEOPLE_USA = people([
+  ["ps-dave", "Dave", 95_000, 2_080],
+  ["ps-jack", "Jack", 78_500, 1_950],
+  ["ps-priya", "Priya Shah", 112_000, 2_080],
+  ["ps-marcus", "Marcus Lee", 68_000, 2_000],
+  ["ps-elena", "Elena Rossi", 88_400, 2_080],
+  ["ps-sam", "Sam Okafor", 59_500, 1_750],
 ]);
+export const PEOPLE_CAN = people([
+  ["ps-liam", "Liam Tremblay", 92_000, 1_950],
+  ["ps-chloe", "Chloé Gagnon", 81_000, 1_950],
+  ["ps-noah", "Noah Wilson", 64_500, 1_820],
+  ["ps-olivia", "Olivia Chen", 105_000, 2_000],
+  ["ps-ethan", "Ethan MacLeod", 58_000, 1_800],
+]);
+export const PEOPLE = [...PEOPLE_USA, ...PEOPLE_CAN];
 
 /* Keyed "Domain:Structure" — Custom Rollups exist under several domains. */
 const BY_STRUCTURE: Record<string, Member[]> = {

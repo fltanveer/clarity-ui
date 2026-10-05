@@ -9,6 +9,7 @@ import { DomainBar } from "./DomainBar";
 import { ActionToolbar, GridModeBar, PovBar, ViewToolbar } from "./Toolbars";
 import { LeftPane } from "./LeftPane";
 import { TermTip } from "./TermTip";
+import { RecordDetail } from "./RecordDetail";
 import { MemberGrid } from "./MemberGrid";
 import { PropertiesPane } from "./PropertiesPane";
 import { StructureBar } from "./StructureBar";
@@ -155,6 +156,8 @@ export function AppShell() {
   const [columnsBy, setColumnsBy] = useState<Record<string, { visible: GridColumn[]; available: GridColumn[] }>>({});
   /* Model selector value per structure. Never defaulted to a Model: "All Models" until one is chosen. */
   const [modelBy, setModelBy] = useState<Record<string, string>>({});
+  /* A plan opened from the list at All Models: the grid shows its people, the Model dropdown stays on All Models. */
+  const [browseBy, setBrowseBy] = useState<Record<string, string | undefined>>({});
 
   const [gridMode, setGridMode] = useState<GridMode>(null);
   const [bulkSel, setBulkSel] = useState<string[]>([]);
@@ -246,10 +249,20 @@ export function AppShell() {
   const liveMembers = members.filter((m) => !deleted.includes(m.id));
   const orderKey = `${domain}:${structure}`;
   /* The declared state for this structure, mode and access level; null where the fixture has none. */
-  const frame = resolveFrame({ domain, structure, mode, access: l100 ? "L100" : "user", model: modelBy[orderKey] ?? ALL_MODELS });
+  const access = l100 ? "L100" : "user";
+  const selected = modelBy[orderKey] ?? ALL_MODELS;
+  const browsed = selected === ALL_MODELS ? browseBy[orderKey] : undefined;
+  /* The grid follows the dropdown, or the plan opened from the list while the dropdown is on All Models. */
+  const frame = resolveFrame({ domain, structure, mode, access, model: browsed ?? selected });
   /* A frame whose list is not the structure's own records (people under a chosen plan). */
   const nested = frame !== null && frame.list.key !== orderKey;
-  const chooseModel = (id: string) => { setModelBy((m) => ({ ...m, [orderKey]: id })); setMember(null); setPeek(null); exitGridMode(); };
+  /* Browsing a plan from the list: the left pane keeps the plans (that plan highlighted) and the dropdown on All Models. */
+  const picker = browsed && frame?.modelSelector.kind === "select" ? resolveFrame({ domain, structure, mode, access, model: ALL_MODELS }) : null;
+  const reset = () => { setMember(null); setPeek(null); exitGridMode(); };
+  /* Dropdown: drills in — the left pane lists that plan's people. */
+  const chooseModel = (id: string) => { setModelBy((m) => ({ ...m, [orderKey]: id })); setBrowseBy((b) => ({ ...b, [orderKey]: undefined })); reset(); };
+  /* List click at All Models: opens the plan in the grid only; a second click on it closes it. */
+  const browseModel = (id: string) => { setBrowseBy((b) => ({ ...b, [orderKey]: b[orderKey] === id ? undefined : id })); reset(); };
   const committedOrder = orderBy[orderKey] ?? members.map((m) => m.id);
   const views = viewsBy[orderKey] ?? defaultViews(domain, structure);
   const setViews = (next: MemberView[]) => setViewsBy((m) => ({ ...m, [orderKey]: next }));
@@ -301,6 +314,8 @@ export function AppShell() {
   /* L100 · a member of a structure is a Model, so picking one configures that Model. */
   const modelMode = hasMembers && l100 && member !== null && structure !== null;
   /* MODEL master list has no properties pane: it could only restate the name. */
+  /* DATA, a record picked in the left pane of a drilled-in Model: the work area shows that record alone. */
+  const detailRecord = mode === "DATA" && !l100 && nested && member !== null ? memberById(member) ?? null : null;
   const showProperties = hasMembers && !memberMode && !modelMode && !(mode === "MODEL" && member === null);
   const memberName = memberById(peek ?? member)?.name ?? null;
   /* Nested items render only what the frame supplies for them — nothing from the structure's schema. */
@@ -326,7 +341,7 @@ export function AppShell() {
         ) : (
           <>
             <Header workspace={workspace} domain={domain} structure={structure}
-              memberName={memberById(member)?.name ?? null} l100={l100}
+              memberName={memberName} l100={l100}
               model={frame ? (nested ? frame.governing : frame.path.model) : null} />
             <DomainBar workspace={workspace} domain={domain} onDomain={changeDomain}
               mode={mode} onMode={changeMode} l100={l100} onL100={changeL100}
@@ -353,11 +368,12 @@ export function AppShell() {
               member={member} onMember={(id) => { setMember(id); setPeek(null); }} peek={peek}
               structure={structure} view={view} members={members} hidden={deleted}
               onAddMember={structure ? () => setAdding(true) : undefined} add={add}
-              modelSelector={frame?.modelSelector} onModel={chooseModel}
-              listed={nested ? nestedRows : undefined}
-              listLabel={frame ? pluralNoun(frame.list.noun) : undefined}
-              onChoose={frame?.list.role === "Model" ? chooseModel : undefined}
-              emptyMessage={frame?.list.empty} context={frame?.context}
+              modelSelector={(picker ?? frame)?.modelSelector} onModel={chooseModel}
+              listed={nested && !picker ? nestedRows : undefined}
+              listLabel={(picker ?? frame) ? pluralNoun((picker ?? frame)!.list.noun) : undefined}
+              onChoose={picker || frame?.list.role === "Model" ? browseModel : undefined}
+              chosen={browsed} chooseHint={picker?.add?.reason}
+              emptyMessage={(picker ?? frame)?.list.empty} context={(picker ?? frame)?.context}
               viewScope={nested ? frame?.governing : null}
               chooserOpen={chooserOpen} onChooser={(o) => { setChooserOpen(o); if (o) exitGridMode(); }} />
           )}
@@ -400,17 +416,21 @@ export function AppShell() {
                   chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed} />
               )}
               <div className="flex min-h-0 flex-1 flex-col">
-                {!chromeCollapsed && (
+                {!chromeCollapsed && !detailRecord && (
                   <ViewToolbar query={gridQuery} onQuery={setGridQuery} display={display} onDisplay={setDisplay}
                     columns={gridColumns} onColumns={setGridColumns} defaults={columnDefaults} />
                 )}
                 {/* Point of view is a DATA context: which report, company, version you are reading.
                     Authoring a model has no point of view, so the bar goes with the mode. */}
                 {mode === "DATA" && !l100 && <PovBar />}
-                {hasMembers ? (
+                {detailRecord && frame ? (
+                  <RecordDetail record={detailRecord} noun={frame.list.noun} plural={pluralNoun(frame.list.noun)}
+                    within={frame.governing} sections={frame.sections?.[detailRecord.id] ?? []}
+                    onBack={() => setMember(null)} />
+                ) : hasMembers ? (
                   <MemberGrid members={gridRows} columns={gridColumns.visible} display={display}
                     label={frame ? pluralNoun(frame.list.noun) : undefined}
-                    onChoose={frame?.list.role === "Model" ? chooseModel : undefined}
+                    onChoose={frame?.list.role === "Model" ? browseModel : undefined}
                     member={member} peek={peek} onPeek={setPeek}
                     gridMode={gridMode} bulkSel={bulkSel} onBulkSel={setBulkSel} onMove={moveRow}
                     /* Configuration is a MODEL surface; in DATA the gear inspects the member in Properties. */

@@ -39,6 +39,10 @@ export interface LeftPaneProps {
   listLabel?: string;
   /** Items carry the Model role: a click chooses that Model. */
   onChoose?: (id: string) => void;
+  /** The Model already chosen: its row stays highlighted while the grid lists its records. */
+  chosen?: string;
+  /** Eyebrow over a list of Models, e.g. "Choose a workforce plan". */
+  chooseHint?: string;
   emptyMessage?: string;
   /** What the list is, as declared: Model in MODEL mode, Record in DATA; Parent or Child. */
   context?: ResolvedFrame["context"];
@@ -57,7 +61,7 @@ export interface AddAction { label: string; enabled: boolean; reason?: string }
  */
 export function LeftPane({
   collapsed, width, onCollapsed, member, onMember, peek, structure, view, members, chooserOpen, onChooser,
-  hidden = [], onAddMember, add, modelSelector, onModel, listed, listLabel, onChoose, emptyMessage, context, viewScope,
+  hidden = [], onAddMember, add, modelSelector, onModel, listed, listLabel, onChoose, chosen, chooseHint, emptyMessage, context, viewScope,
 }: LeftPaneProps) {
   const [q, setQ] = useState("");
   /* Search is one icon until asked for; closing it clears the query so nothing stays filtered unseen. */
@@ -195,12 +199,12 @@ export function LeftPane({
         {/* Choosing a Model happens here: at All Models the list IS the picker, so it says so. */}
         {onChoose && (
           <p id={addReasonId} className="px-3 pt-1 pb-0.5 text-micro font-semibold tracking-eyebrow text-fg-tertiary uppercase">
-            {add?.reason ?? "Choose a Model"}
+            {chooseHint ?? add?.reason ?? "Choose a Model"}
           </p>
         )}
         <ul aria-label={`${listLabel ?? "Members"} in ${view.name}`}>
           {shown.map((m: Member) => {
-            const on = m.id === member;
+            const on = m.id === member || m.id === chosen;
             const peeked = !on && m.id === peek;
             return (
               <li key={m.id}>
@@ -246,11 +250,21 @@ function ModelRow({ selector, onModel, context }: { selector: ModelSelector; onM
     </span>
   );
   const top = (lead: ReactNode) => <div className="mb-1 flex min-h-5 items-center justify-between gap-2">{lead}{chip}</div>;
+  /* One Model: the same dropdown as Workforce, locked to it, so the control never moves between structures. */
   if (selector.kind === "text") {
     return (
-      <div className="px-3 pt-1.5 pb-2">
+      <div className="px-2.5 pt-1.5 pb-2">
         {top(eyebrow)}
-        <p aria-labelledby="left-pane-model-label" className="truncate ps-0.5 text-ui font-semibold">{selector.label}</p>
+        <div className="relative">
+          <select aria-label="Model" aria-describedby="left-pane-model-locked" disabled value={selector.label}
+            className="h-control-form w-full cursor-not-allowed appearance-none truncate rounded-control border border-line-subtle bg-subtle ps-7 pe-8 text-ui text-fg-disabled opacity-100">
+            <option value={selector.label}>{selector.label}</option>
+          </select>
+          {/* Reads as the Workforce dropdown, switched off: greyed chevron kept, lock says why. */}
+          <Lock size={12} aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-fg-disabled" />
+          <ChevronDown size={14} aria-hidden className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-fg-disabled" />
+          <span id="left-pane-model-locked" className="sr-only">Locked: this structure has only one Model</span>
+        </div>
       </div>
     );
   }

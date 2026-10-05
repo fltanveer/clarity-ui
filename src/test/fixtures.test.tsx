@@ -12,6 +12,11 @@ const setup = () => {
 const leftPane = () => screen.getByRole("complementary", { name: "Members" });
 const leftList = () => within(leftPane()).getByRole("list", { name: / in Master list$/ });
 const leftNames = () => within(leftList()).queryAllByRole("button").map((b) => b.querySelector("span.truncate")?.textContent ?? "");
+const USA = ["Dave", "Jack", "Priya Shah", "Marcus Lee", "Elena Rossi", "Sam Okafor"];
+const CAN = ["Liam Tremblay", "Chloé Gagnon", "Noah Wilson", "Olivia Chen", "Ethan MacLeod"];
+/* The centre grid's people: each row's name cell, without the row number. */
+const peopleNames = () => within(screen.getByRole("list", { name: "People" })).queryAllByRole("listitem")
+  .flatMap((li) => within(li).queryAllByRole("button").slice(0, 1)).map((b) => b.textContent?.replace(/^\d+/, "") ?? "");
 const props = () => screen.getByRole("complementary", { name: "Properties" });
 
 const openWorkforce = async (user: ReturnType<typeof setup>["user"]) => {
@@ -31,10 +36,9 @@ describe("Fixture A · Company", () => {
     expect(within(grid).getAllByRole("listitem")[1]).toHaveTextContent("Acme NA");
   });
 
-  it("DATA: the single Model is text, not a picker; neither Add nor Assign is offered", () => {
+  it("DATA: the single Model is a locked dropdown; neither Add nor Assign is offered", () => {
     setup();
-    expect(within(leftPane()).getByText("Company", { selector: "p" })).toBeInTheDocument();
-    expect(within(leftPane()).queryByRole("combobox")).not.toBeInTheDocument();
+    expectLockedModel("Company");
     expect(screen.queryByRole("button", { name: /^Add / })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Assign/ })).not.toBeInTheDocument();
   });
@@ -66,10 +70,10 @@ describe("Fixture A · Company", () => {
 });
 
 describe("Company Regions · child structure", () => {
-  it("one Model shown as text; Add Company Region in MODEL only", async () => {
+  it("one Model shown as a locked dropdown; Add Company Region in MODEL only", async () => {
     const { user } = setup();
     await user.click(screen.getByRole("tab", { name: "Company Regions" }));
-    expect(within(leftPane()).getByText("Company Region", { selector: "p" })).toBeInTheDocument();
+    expectLockedModel("Company Region");
     expect(screen.queryByRole("button", { name: /^Add / })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "MODEL" }));
     expect(screen.getAllByRole("button", { name: "Add Company Region" })[0]).toBeEnabled();
@@ -101,6 +105,14 @@ describe("Company Regions · child structure", () => {
   });
 });
 
+/* One Model: the Model dropdown is there, locked to it (Jam, 30 Sep). */
+const expectLockedModel = (name: string) => {
+  const model = within(leftPane()).getByRole("combobox", { name: "Model" });
+  expect(model).toBeDisabled();
+  expect(model).toHaveDisplayValue(name);
+  expect(model).toHaveAccessibleDescription("Locked: this structure has only one Model");
+};
+
 /* The chip's two halves are separate hover targets, so match on the chip's whole text. */
 const chip = (t: string) => within(leftPane()).getByText((_, el) => el?.tagName === "SPAN" && el.textContent === t && el.children.length === 2);
 
@@ -121,7 +133,11 @@ describe("Model | Record context (Jams, 30 Sep and 1 Oct)", () => {
     await openWorkforce(user);
     expect(chip("Model | Parent")).toBeInTheDocument();
     expect(within(leftPane()).getByRole("button", { name: /^Workforce Plans: Master list/ })).toBeInTheDocument();
+    /* Opening a plan from the list leaves the left pane on the Models. */
     await user.click(within(leftList()).getByRole("button", { name: "Workforce USA" }));
+    expect(chip("Model | Parent")).toBeInTheDocument();
+    /* Choosing it in the dropdown makes the items Records. */
+    await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "wf-usa");
     expect(chip("Record | Parent")).toBeInTheDocument();
     expect(within(leftPane()).getByRole("button", { name: /^Workforce USA: Master list/ })).toBeInTheDocument();
   });
@@ -131,7 +147,7 @@ describe("Model | Record context (Jams, 30 Sep and 1 Oct)", () => {
     await openWorkforce(user);
     const grid = () => screen.getByRole("list", { name: /^(Workforce Plans|People)$/ });
     await user.click(within(grid()).getByRole("button", { name: /Workforce USA/ }));
-    expect(within(grid()).getAllByRole("listitem").map((li) => li.textContent)).toEqual([expect.stringContaining("Dave"), expect.stringContaining("Jack")]);
+    expect(peopleNames()).toEqual(USA);
   });
 });
 
@@ -156,7 +172,7 @@ describe("Fixture B · Workforce", () => {
     const { user } = setup();
     await openWorkforce(user);
     await user.click(screen.getByRole("button", { name: "MODEL" }));
-    expect(within(leftPane()).getByText("Workforce Plan", { selector: "p" })).toBeInTheDocument();
+    expectLockedModel("Workforce Plan");
     expect(leftNames()).toEqual(["Workforce USA", "Workforce Canada"]);
     expect(screen.getAllByRole("button", { name: "Add Workforce Plan" })[0]).toBeEnabled();
   });
@@ -173,18 +189,31 @@ describe("Fixture B · Workforce", () => {
     expect(within(props()).getByRole("heading", { name: "Master list" })).toBeInTheDocument();
   });
 
-  it("DATA: choosing Workforce USA in the left pane lists Dave and Jack; Dave's values open", async () => {
+  it("DATA: a plan clicked in the list opens in the grid only; the dropdown stays on All Models", async () => {
     const { user } = setup();
     await openWorkforce(user);
     await user.click(within(leftList()).getByRole("button", { name: "Workforce USA" }));
-    expect(within(leftPane()).getByRole("combobox", { name: "Model" })).toHaveValue("wf-usa");
-    expect(leftNames()).toEqual(["Dave", "Jack"]);
+    expect(within(leftPane()).getByRole("combobox", { name: "Model" })).toHaveValue("all");
+    expect(peopleNames()).toEqual(USA);
+    expect(leftNames()).toEqual(["Workforce USA", "Workforce Canada"]);
+    expect(within(leftList()).getByRole("button", { name: "Workforce USA" })).toHaveAttribute("aria-current", "true");
+    for (const b of screen.getAllByRole("button", { name: "Add Person" })) expect(b).toBeEnabled();
+    /* A second click closes it: back to the plans. */
+    await user.click(within(leftList()).getByRole("button", { name: "Workforce USA" }));
+    expect(screen.getByRole("list", { name: "Workforce Plans" })).toBeInTheDocument();
+  });
+
+  it("DATA: choosing Workforce USA in the dropdown lists its people on the left; a person's drivers open on the right", async () => {
+    const { user } = setup();
+    await openWorkforce(user);
+    await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "wf-usa");
+    expect(leftNames()).toEqual(USA);
+    expect(peopleNames()).toEqual(USA);
     /* Back returns to the plans; the first plan is never re-picked on the way. */
     await user.click(within(leftPane()).getByRole("button", { name: "All models" }));
     expect(leftNames()).toEqual(["Workforce USA", "Workforce Canada"]);
     expect(within(leftPane()).getByText("Choose a workforce plan")).toBeInTheDocument();
-    await user.click(within(leftList()).getByRole("button", { name: "Workforce USA" }));
-    for (const b of screen.getAllByRole("button", { name: "Add Person" })) expect(b).toBeEnabled();
+    await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "wf-usa");
 
     await user.click(within(leftList()).getByRole("button", { name: "Dave" }));
     const pane = props();
@@ -197,14 +226,38 @@ describe("Fixture B · Workforce", () => {
     expect(within(pane).queryByRole("button", { name: /System Details/i })).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Breadcrumb" }))
       .toHaveTextContent("Operational›Workforce›Workforce Plans›Workforce USA›Dave");
+
+    await user.click(within(leftList()).getByRole("button", { name: "Priya Shah" }));
+    expect(within(props()).getByText("Hourly rate").nextElementSibling).toHaveTextContent("53.85");
   });
 
-  it("DATA: Workforce Canada has no people — empty state, none invented, Add Person enabled", async () => {
+  it("DATA: a person picked in the left pane replaces the grid with that person alone — name on top, split tables below", async () => {
+    const { user } = setup();
+    await openWorkforce(user);
+    await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "wf-usa");
+    await user.click(within(leftList()).getByRole("button", { name: "Dave" }));
+    const detail = screen.getByRole("region", { name: "Person: Dave" });
+    expect(within(detail).getByRole("heading", { name: "Dave" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "People" })).not.toBeInTheDocument();
+    /* One grid: Field | Value | Source, with Identity and Drivers as group rows. */
+    const grid = within(detail).getByRole("table", { name: "Dave details" });
+    expect(within(detail).getAllByRole("table")).toHaveLength(1);
+    expect(within(grid).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Field", "Value", "Source"]);
+    const row = (field: string) => within(grid).getByRole("rowheader", { name: field }).closest("tr")!;
+    expect(row("Salary")).toHaveTextContent(/^Salary95,000$/);
+    expect(row("Hourly rate")).toHaveTextContent("Hourly rate45.67Derived · Salary ÷ Hours worked");
+    expect(row("Model")).toHaveTextContent("Workforce USA");
+    expect(row("Description")).toHaveTextContent("Not supplied");
+    /* Back returns to the list. */
+    await user.click(within(detail).getByRole("button", { name: "Back to all people" }));
+    expect(peopleNames()).toEqual(USA);
+  });
+
+  it("DATA: Workforce Canada lists its own (dummy) people; Add Person enabled", async () => {
     const { user } = setup();
     await openWorkforce(user);
     await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "wf-can");
-    expect(leftNames()).toEqual([]);
-    expect(within(leftPane()).getByText("No people in Workforce Canada.")).toBeInTheDocument();
+    expect(leftNames()).toEqual(CAN);
     for (const b of screen.getAllByRole("button", { name: "Add Person" })) expect(b).toBeEnabled();
   });
 
@@ -217,9 +270,9 @@ describe("Fixture B · Workforce", () => {
     expect(dialog).toHaveTextContent("Workforce Canada");
     await user.type(within(dialog).getByRole("textbox", { name: "Name / Code" }), "Maria");
     await user.click(within(dialog).getByRole("button", { name: "Create person" }));
-    expect(leftNames()).toEqual(["Maria"]);
+    expect(leftNames()).toEqual([...CAN, "Maria"]);
     await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "wf-usa");
-    expect(leftNames()).toEqual(["Dave", "Jack"]);
+    expect(leftNames()).toEqual(USA);
     await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "all");
     expect(leftNames()).toEqual(["Workforce USA", "Workforce Canada"]);
   });

@@ -1,5 +1,5 @@
 import { Fragment, useRef, useState, type KeyboardEvent } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, CornerDownRight, Lock, Menu, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, CornerDownRight, Layers, Lock, Menu, Pencil, Plus, Sigma, Trash2, type LucideIcon } from "lucide-react";
 import {
   BOTTOM_TABS, CLOSED_DOMAINS, NON_DELETABLE_STRUCTURES, SECTIONED_DOMAINS, SECTION_LABEL, SECTION_ORDER,
   isAddToken, isPipe, plusLabel, sectionOf, type StructureSection, type WorkspaceId,
@@ -58,8 +58,8 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
   const addNoun = addLabel?.replace(/^(Add|New) /, "") ?? "Structure";
   const closed = domain ? CLOSED_DOMAINS.has(domain) : false;
 
-  const tab = (t: string, sectionId?: string) => (
-    <StructureTab key={t} name={t} label={labelOf(t)} on={t === structure} onSelect={() => onStructure(t)}
+  const tab = (t: string, sectionId?: string, kind?: StructureSection) => (
+    <StructureTab key={t} name={t} label={labelOf(t)} kind={kind} on={t === structure} onSelect={() => onStructure(t)}
       system={NON_DELETABLE_STRUCTURES.has(key(t))} canAuthor={canAuthor} sectionId={sectionId}
       onEdit={() => (l100 ? onConfigure(labelOf(t)) : setEditing(t))} onDelete={() => setConfirm(t)} />
   );
@@ -120,7 +120,7 @@ export function StructureBar({ workspace, domain, structure, onStructure, canAut
           <Fragment key={sec.kind}>
             {i > 0 && <Pipe className="mx-1.5 self-center" />}
             <SectionLabel kind={sec.kind} id={`structure-section-${sec.kind}`} />
-            {sec.tabs.map((t) => tab(t, `structure-section-${sec.kind}`))}
+            {sec.tabs.map((t) => tab(t, `structure-section-${sec.kind}`, sec.kind))}
           </Fragment>
         )) : items.map((t, i) => isPipe(t) ? <Pipe key={`p${i}`} className="mx-1" /> : tab(t))}
       </div>
@@ -189,8 +189,15 @@ function SectionLabel({ kind, id }: { kind: StructureSection; id: string }) {
   );
 }
 
-function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, onDelete, sectionId }: {
-  name: string; label: string; on: boolean; onSelect: () => void; system: boolean;
+/*
+ * Each tab carries its kind, so a parent never reads like a child once the
+ * section eyebrow scrolls out of view: a stack for a parent (it holds the
+ * records), ↳ for a child (it classifies a parent), Σ for a rollup.
+ */
+const KIND_ICON: Record<StructureSection, LucideIcon> = { parent: Layers, child: CornerDownRight, rollup: Sigma };
+
+function StructureTab({ name, label, kind, on, onSelect, system, canAuthor, onEdit, onDelete, sectionId }: {
+  name: string; label: string; kind?: StructureSection; on: boolean; onSelect: () => void; system: boolean;
   canAuthor: boolean; onEdit: () => void; onDelete: () => void; sectionId?: string;
 }) {
   const [menu, setMenu] = useState(false);
@@ -200,6 +207,7 @@ function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, on
   const canDelete = canAuthor && !system;
   /* Full-height square tabs; the active one is the work surface's colour with a mode-coloured bottom rule. */
   const frame = on ? "border-b-mode-solid bg-grid-container" : "border-b-transparent";
+  const KindIcon = kind ? KIND_ICON[kind] : null;
   return (
     <span className="caret-host relative flex h-full shrink-0 items-stretch"
       onContextMenu={(e) => { if (showCaret) { e.preventDefault(); setMenu(true); } }}>
@@ -213,7 +221,9 @@ function StructureTab({ name, label, on, onSelect, system, canAuthor, onEdit, on
           frame,
           on ? "font-semibold text-fg-primary" : "text-fg-tertiary hover:bg-hover hover:text-fg-primary",
         )}>
-        {system && <Lock size={10} aria-label="System-defined" />}
+        {system && <Lock size={10} aria-label="System-defined" className="shrink-0" />}
+        {KindIcon && <KindIcon size={12} strokeWidth={on ? 2.25 : 1.75} aria-hidden
+          className={cx("shrink-0", on ? "text-mode-ink" : "text-fg-icon")} />}
         {label}
       </button>
       {showCaret && (

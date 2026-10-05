@@ -9,7 +9,7 @@
  * access level only; see resolveFrame.
  */
 
-import { COMPANIES, COMPANY_REGIONS, PEOPLE, WORKFORCE_PLANS, type Member } from "./members";
+import { COMPANIES, COMPANY_REGIONS, PEOPLE_CAN, PEOPLE_USA, WORKFORCE_PLANS, type Member } from "./members";
 import type { PropertySectionDef } from "./properties";
 import type { GridColumn, Mode } from "../shell/types";
 
@@ -67,8 +67,8 @@ const col = (id: string, label: string): GridColumn => ({ id, label });
 const COMPANY_COLUMNS = [col("name", "Name / Code"), col("short", "Short Name"), col("desc", "Description"),
   col("region", "Company Region"), col("status", "Status")];
 const PLAN_COLUMNS = [col("name", "Name / Code"), col("short", "Short Name"), col("desc", "Description"), col("status", "Status")];
-/* People: the fixture supplies no grid columns beyond Name / Code. Flagged; nothing added. */
-const PERSON_COLUMNS = [col("name", "Name / Code")];
+/* People: Name / Code plus the three drivers, so a plan's people compare at a glance. */
+const PERSON_COLUMNS = [col("name", "Name / Code"), col("salary", "Salary"), col("hours", "Hours worked"), col("rate", "Hourly rate")];
 
 /* Structures whose columns are declared without a full frame. */
 export const STRUCTURE_COLUMNS: Record<string, GridColumn[]> = {};
@@ -88,14 +88,14 @@ const ids = (list: Member[]) => list.map((m) => m.id);
 const view = { available: true, defaultViewId: "master" } as const;
 const ctx = (role: ItemRole, key: string) => ({ role, type: STRUCTURE_TYPE[key] });
 
-/* Driver values — blue in the fixture: layout only, not business assumptions. */
-const drivers = (salary: string, hours: string, rate: string): PropertySectionDef[] => [
+/* Driver values — blue in the fixture: layout only, not business assumptions. Read off each person. */
+const drivers = (list: Member[]): Record<string, PropertySectionDef[]> => Object.fromEntries(list.map((p) => [p.id, [
   { id: "drivers", label: "Drivers", fields: [
-    { l: "Salary", v: salary, t: "read" },
-    { l: "Hours worked", v: hours, t: "read" },
-    { l: "Hourly rate", v: rate, t: "read" },
+    { l: "Salary", v: p.attrs?.Salary ?? "", t: "read" },
+    { l: "Hours worked", v: p.attrs?.["Hours worked"] ?? "", t: "read" },
+    { l: "Hourly rate", v: p.attrs?.["Hourly rate"] ?? "", t: "read", src: "Salary ÷ Hours worked" },
   ] },
-];
+]]));
 
 const COMPANY: Record<Mode, ResolvedFrame> = {
   MODEL: {
@@ -154,13 +154,12 @@ const WORKFORCE_DATA: Record<string, ResolvedFrame> = {
     { role: "Model", noun: "Workforce Plan", ids: ids(WORKFORCE_PLANS), key: "Workforce:Workforce Plans", empty: "No workforce plans." },
     { label: "Add Person", enabled: false, reason: "Choose a workforce plan" }, PLAN_COLUMNS),
   "wf-usa": workforceData("wf-usa", "Workforce USA",
-    { role: "Record", noun: "Person", ids: ids(PEOPLE), key: "Workforce:Workforce Plans#wf-usa", empty: "No people in Workforce USA." },
-    { label: "Add Person", enabled: true }, PERSON_COLUMNS,
-    { "ps-dave": drivers("95,000", "2,080", "45.67"), "ps-jack": drivers("78,500", "1,950", "40.26") }),
-  /* No people supplied for Canada. None are invented. */
+    { role: "Record", noun: "Person", ids: ids(PEOPLE_USA), key: "Workforce:Workforce Plans#wf-usa", empty: "No people in Workforce USA." },
+    { label: "Add Person", enabled: true }, PERSON_COLUMNS, drivers(PEOPLE_USA)),
+  /* Canada's people are dummy demo data (see members.ts). */
   "wf-can": workforceData("wf-can", "Workforce Canada",
-    { role: "Record", noun: "Person", ids: [], key: "Workforce:Workforce Plans#wf-can", empty: "No people in Workforce Canada." },
-    { label: "Add Person", enabled: true }, PERSON_COLUMNS),
+    { role: "Record", noun: "Person", ids: ids(PEOPLE_CAN), key: "Workforce:Workforce Plans#wf-can", empty: "No people in Workforce Canada." },
+    { label: "Add Person", enabled: true }, PERSON_COLUMNS, drivers(PEOPLE_CAN)),
 };
 
 /*

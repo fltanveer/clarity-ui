@@ -29,11 +29,15 @@ export interface MemberGridProps {
 const COL_WIDTH: Record<string, string> = {
   code: "w-col-code", short: "w-30", type: "w-col-type", status: "w-col-status",
   desc: "w-60", region: "w-30", owner: "w-30", modified: "w-30", source: "w-30",
+  salary: "w-24 text-end tabular-nums", hours: "w-24 text-end tabular-nums", rate: "w-24 text-end tabular-nums",
 };
 
 const extra: Record<string, (m: Member) => string> = {
   desc: (m) => m.description || "—",
   region: (m) => m.attrs?.["Company Region"] ?? "—",
+  salary: (m) => m.attrs?.Salary ?? "—",
+  hours: (m) => m.attrs?.["Hours worked"] ?? "—",
+  rate: (m) => m.attrs?.["Hourly rate"] ?? "—",
   owner: () => "jack@clarityos",
   modified: () => "04 Feb 2026",
   source: (m) => (m.locked ? "System" : "User"),
