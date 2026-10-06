@@ -82,7 +82,7 @@ export function MemberGrid({ members, columns, display, member, peek, onPeek, gr
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-surface">
-      <div className="flex h-grid-head shrink-0 items-center gap-2.5 border-b border-grid-line-col bg-grid-header px-3 text-caption font-semibold whitespace-nowrap text-fg-secondary">
+      <div className="flex h-grid-head shrink-0 items-center gap-2.5 border-s-[3px] border-b border-s-transparent border-b-grid-line-col bg-grid-header px-3 text-caption font-semibold whitespace-nowrap text-fg-secondary">
         <span className="grid w-6.5 shrink-0 place-items-center">
           {gridMode === "delete" ? (
             <input type="checkbox" checked={allSelected} disabled={!deletable.length}

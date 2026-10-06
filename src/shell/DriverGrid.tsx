@@ -24,12 +24,16 @@ export interface DriverGridProps {
  * in the grid above (Driver | Value | Source). Values are read off the
  * fixture; nothing is computed here.
  */
+/* Inset of the member grid's content (3px row accent + px-3), so both grids share one left edge. */
+const NAME_INSET = "ps-[15px]";
+const CHIP_INSET = NAME_INSET;
+
 export function DriverGrid({ record, noun, sections, onBack, plural, collapsed = false, onCollapsed }: DriverGridProps) {
   const fields = sections.flatMap((s) => s.fields);
   return (
     <section aria-label={record ? `Details: ${record.name}` : "Details"} className={cx("flex min-h-0 flex-col bg-surface", !collapsed && "flex-1")}>
       {/* Compact mode-tinted band, so the lower grid reads as its own part; the picked record sits on a solid chip. */}
-      <header className={cx("flex shrink-0 items-center gap-2 bg-mode-soft px-3 py-2", !collapsed && "border-b border-line-subtle")}>
+      <header className={cx("flex shrink-0 items-center gap-2 bg-mode-soft py-2 pe-3", onBack ? "ps-3" : CHIP_INSET, !collapsed && "border-b border-line-subtle")}>
         {onBack && (
           <button type="button" onClick={onBack} aria-label={`Back to all ${(plural ?? noun).toLowerCase()}`}
             className="grid size-5 shrink-0 cursor-pointer place-items-center rounded-chip text-mode-ink hover:bg-hover">
@@ -61,7 +65,7 @@ export function DriverGrid({ record, noun, sections, onBack, plural, collapsed =
             </colgroup>
             <thead>
               <tr className="h-grid-head border-b border-grid-line-col bg-grid-header text-caption font-semibold whitespace-nowrap text-fg-secondary">
-                <th scope="col" className="px-3 text-start font-semibold">Driver</th>
+                <th scope="col" className={cx(NAME_INSET, "pe-3 text-start font-semibold")}>Driver</th>
                 <th scope="col" className="border-s border-grid-line-col px-3 text-end font-semibold">Value</th>
                 <th scope="col" className="border-s border-grid-line-col px-3 text-start font-semibold">Source</th>
               </tr>
@@ -71,7 +75,7 @@ export function DriverGrid({ record, noun, sections, onBack, plural, collapsed =
                 const blank = f.v === undefined || f.v === "";
                 return (
                   <tr key={f.l} className="h-grid-row border-b border-grid-line hover:bg-hover">
-                    <th scope="row" className="truncate px-3 text-start font-normal text-fg-primary">{f.l}</th>
+                    <th scope="row" className={cx(NAME_INSET, "truncate pe-3 text-start font-normal text-fg-primary")}>{f.l}</th>
                     <td className="truncate border-s border-grid-line px-3 text-end tabular-nums">
                       {blank ? <span className="text-caption text-fg-tertiary italic">Not supplied</span> : String(f.v)}
                     </td>

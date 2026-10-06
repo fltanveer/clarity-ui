@@ -340,8 +340,9 @@ export function AppShell() {
   const memberName = memberById(peek ?? member)?.name ?? null;
   /* Nested items render only what the frame supplies for them — nothing from the structure's schema. */
   const fixtureSections = nested && frame ? frame.sections?.[(peek ?? member)!] ?? [] : undefined;
-  /* Drilled into a Model whose records carry drivers: records on top, the picked record's drivers below. */
-  const splitDrivers = mode === "DATA" && !l100 && nested && frame?.list.role === "Record" && Boolean(frame.sections) && !gridMode;
+  /* Drilled into a Model whose records carry drivers: records on top, the picked record's drivers below.
+     Only once a Model is chosen in the dropdown — a plan browsed at All Models lists its people alone. */
+  const splitDrivers = mode === "DATA" && !l100 && nested && !picker && frame?.list.role === "Record" && Boolean(frame.sections) && !gridMode;
   const driversMax = splitHeight ? Math.max(DRIVERS.min, Math.min(DRIVERS.max, splitHeight - RECORDS_MIN)) : DRIVERS.max;
   const driversShown = Math.min(driversHeight, driversMax);
   /* A pane can only grow into space the grid does not need. */

@@ -198,6 +198,9 @@ describe("Fixture B · Workforce", () => {
     expect(leftNames()).toEqual(["Workforce USA", "Workforce Canada"]);
     expect(within(leftList()).getByRole("button", { name: "Workforce USA" })).toHaveAttribute("aria-current", "true");
     for (const b of screen.getAllByRole("button", { name: "Add Person" })) expect(b).toBeEnabled();
+    /* Browsed at All Models: people only, no Details until a Model is chosen. */
+    expect(screen.queryByRole("region", { name: /^Details/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("separator", { name: "Resize drivers grid" })).not.toBeInTheDocument();
     /* A second click closes it: back to the plans. */
     await user.click(within(leftList()).getByRole("button", { name: "Workforce USA" }));
     expect(screen.getByRole("list", { name: "Workforce Plans" })).toBeInTheDocument();
