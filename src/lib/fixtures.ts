@@ -67,8 +67,8 @@ const col = (id: string, label: string): GridColumn => ({ id, label });
 const COMPANY_COLUMNS = [col("name", "Name / Code"), col("short", "Short Name"), col("desc", "Description"),
   col("region", "Company Region"), col("status", "Status")];
 const PLAN_COLUMNS = [col("name", "Name / Code"), col("short", "Short Name"), col("desc", "Description"), col("status", "Status")];
-/* People: Name / Code plus the three drivers, so a plan's people compare at a glance. */
-const PERSON_COLUMNS = [col("name", "Name / Code"), col("salary", "Salary"), col("hours", "Hours worked"), col("rate", "Hourly rate")];
+/* People: records only. Their drivers show in the grid below, for the person picked. */
+const PERSON_COLUMNS = [col("name", "Name / Code")];
 
 /* Structures whose columns are declared without a full frame. */
 export const STRUCTURE_COLUMNS: Record<string, GridColumn[]> = {};

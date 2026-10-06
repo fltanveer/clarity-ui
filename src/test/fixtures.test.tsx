@@ -231,26 +231,50 @@ describe("Fixture B · Workforce", () => {
     expect(within(props()).getByText("Hourly rate").nextElementSibling).toHaveTextContent("53.85");
   });
 
-  it("DATA: a person picked in the left pane replaces the grid with that person alone — name on top, split tables below", async () => {
+  it("DATA: a person picked in the left pane shows only that person's drivers — no list of people", async () => {
     const { user } = setup();
     await openWorkforce(user);
     await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "wf-usa");
     await user.click(within(leftList()).getByRole("button", { name: "Dave" }));
-    const detail = screen.getByRole("region", { name: "Person: Dave" });
-    expect(within(detail).getByRole("heading", { name: "Dave" })).toBeInTheDocument();
+    const detail = screen.getByRole("region", { name: "Details: Dave" });
     expect(screen.queryByRole("list", { name: "People" })).not.toBeInTheDocument();
-    /* One grid: Field | Value | Source, with Identity and Drivers as group rows. */
-    const grid = within(detail).getByRole("table", { name: "Dave details" });
-    expect(within(detail).getAllByRole("table")).toHaveLength(1);
-    expect(within(grid).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Field", "Value", "Source"]);
+    expect(screen.queryByRole("separator", { name: "Resize drivers grid" })).not.toBeInTheDocument();
+    const grid = within(detail).getByRole("table", { name: "Dave drivers" });
+    expect(within(grid).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Driver", "Value", "Source"]);
     const row = (field: string) => within(grid).getByRole("rowheader", { name: field }).closest("tr")!;
     expect(row("Salary")).toHaveTextContent(/^Salary95,000$/);
     expect(row("Hourly rate")).toHaveTextContent("Hourly rate45.67Derived · Salary ÷ Hours worked");
-    expect(row("Model")).toHaveTextContent("Workforce USA");
-    expect(row("Description")).toHaveTextContent("Not supplied");
     /* Back returns to the list. */
     await user.click(within(detail).getByRole("button", { name: "Back to all people" }));
     expect(peopleNames()).toEqual(USA);
+  });
+
+  it("DATA: a drilled-in plan splits the work area — people on top, the picked person's drivers below", async () => {
+    const { user } = setup();
+    await openWorkforce(user);
+    await user.selectOptions(within(leftPane()).getByRole("combobox", { name: "Model" }), "wf-usa");
+    /* Top grid: records only, no driver columns. */
+    expect(peopleNames()).toEqual(USA);
+    expect(screen.queryByText("Salary")).not.toBeInTheDocument();
+    expect(screen.getByRole("separator", { name: "Resize drivers grid" })).toHaveAttribute("aria-orientation", "horizontal");
+    expect(within(screen.getByRole("region", { name: "Details" })).getByText("Select a person above to see their drivers.")).toBeInTheDocument();
+
+    await user.click(within(screen.getByRole("list", { name: "People" })).getByRole("button", { name: "Jack" }));
+    const drivers = screen.getByRole("table", { name: "Jack drivers" });
+    const row = (f: string) => within(drivers).getByRole("rowheader", { name: f }).closest("tr")!;
+    expect(row("Salary")).toHaveTextContent(/^Salary78,500$/);
+    expect(row("Hours worked")).toHaveTextContent(/^Hours worked1,950$/);
+    expect(row("Hourly rate")).toHaveTextContent("Hourly rate40.26Derived · Salary ÷ Hours worked");
+
+    /* Details fold to their header: no table, no splitter; open again restores both. */
+    const toggle = screen.getByRole("button", { name: "Details" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("table", { name: "Jack drivers" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("separator", { name: "Resize drivers grid" })).not.toBeInTheDocument();
+    await user.click(toggle);
+    expect(screen.getByRole("table", { name: "Jack drivers" })).toBeInTheDocument();
   });
 
   it("DATA: Workforce Canada lists its own (dummy) people; Add Person enabled", async () => {

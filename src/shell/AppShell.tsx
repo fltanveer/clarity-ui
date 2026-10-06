@@ -9,8 +9,8 @@ import { DomainBar } from "./DomainBar";
 import { ActionToolbar, GridModeBar, PovBar, ViewToolbar } from "./Toolbars";
 import { LeftPane } from "./LeftPane";
 import { TermTip } from "./TermTip";
-import { RecordDetail } from "./RecordDetail";
 import { MemberGrid } from "./MemberGrid";
+import { DriverGrid } from "./DriverGrid";
 import { PropertiesPane } from "./PropertiesPane";
 import { StructureBar } from "./StructureBar";
 import { CollapsedChromeStrip, Footer, WorkspaceStub } from "./Chrome";
@@ -35,6 +35,9 @@ const MEMBERS_NARROW = 1280;
 const LEFT = { key: "clarity.membersWidth", def: 240, min: 200, max: 420 };
 /* 280 min: the properties tabs (Properties · Notes · Attachments) need it without truncating. */
 const RIGHT = { key: "clarity.propertiesWidth", def: 280, min: 280, max: 520 };
+/* Drivers grid under a drilled-in Model's records: its height, with room kept for the records above. */
+const DRIVERS = { key: "clarity.driversHeight", def: 220, min: 96, max: 640 };
+const RECORDS_MIN = 120;
 /* The grid never goes below the centre minimum (centre-min token), and collapsed panes keep their rails. */
 const CENTRE_MIN = 600;
 const LEFT_RAIL = 32;
@@ -131,6 +134,23 @@ export function AppShell() {
   const [rightWidth, setRightWidth] = useState(() => readWidth(RIGHT));
   useEffect(() => { try { window.localStorage.setItem(LEFT.key, String(leftWidth)); } catch { /* storage unavailable */ } }, [leftWidth]);
   useEffect(() => { try { window.localStorage.setItem(RIGHT.key, String(rightWidth)); } catch { /* storage unavailable */ } }, [rightWidth]);
+  const [driversHeight, setDriversHeight] = useState(() => readWidth(DRIVERS));
+  useEffect(() => { try { window.localStorage.setItem(DRIVERS.key, String(driversHeight)); } catch { /* storage unavailable */ } }, [driversHeight]);
+  const [driversCollapsed, setDriversCollapsed] = useState(() => {
+    try { return window.localStorage.getItem("clarity.driversCollapsed") === "1"; } catch { return false; }
+  });
+  useEffect(() => { try { window.localStorage.setItem("clarity.driversCollapsed", driversCollapsed ? "1" : "0"); } catch { /* storage unavailable */ } }, [driversCollapsed]);
+  /* Height the records and drivers grids share; 0 until measured. */
+  const [splitHeight, setSplitHeight] = useState(0);
+  const splitObserver = useRef<ResizeObserver | null>(null);
+  const splitRef = useCallback((el: HTMLDivElement | null) => {
+    splitObserver.current?.disconnect();
+    splitObserver.current = null;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => setSplitHeight(Math.round(entry.contentRect.height)));
+    ro.observe(el);
+    splitObserver.current = ro;
+  }, []);
   /* Space the panes share with the grid; 0 until measured (and in environments without layout). */
   const mainRef = useRef<HTMLElement>(null);
   const [mainWidth, setMainWidth] = useState(0);
@@ -320,6 +340,10 @@ export function AppShell() {
   const memberName = memberById(peek ?? member)?.name ?? null;
   /* Nested items render only what the frame supplies for them — nothing from the structure's schema. */
   const fixtureSections = nested && frame ? frame.sections?.[(peek ?? member)!] ?? [] : undefined;
+  /* Drilled into a Model whose records carry drivers: records on top, the picked record's drivers below. */
+  const splitDrivers = mode === "DATA" && !l100 && nested && frame?.list.role === "Record" && Boolean(frame.sections) && !gridMode;
+  const driversMax = splitHeight ? Math.max(DRIVERS.min, Math.min(DRIVERS.max, splitHeight - RECORDS_MIN)) : DRIVERS.max;
+  const driversShown = Math.min(driversHeight, driversMax);
   /* A pane can only grow into space the grid does not need. */
   const rightTaken = showProperties ? (rightOpen ? rightWidth : RIGHT_RAIL) : 0;
   const leftTaken = hasMembers ? (leftCollapsed ? LEFT_RAIL : leftWidth) : 0;
@@ -424,9 +448,29 @@ export function AppShell() {
                     Authoring a model has no point of view, so the bar goes with the mode. */}
                 {mode === "DATA" && !l100 && <PovBar />}
                 {detailRecord && frame ? (
-                  <RecordDetail record={detailRecord} noun={frame.list.noun} plural={pluralNoun(frame.list.noun)}
-                    within={frame.governing} sections={frame.sections?.[detailRecord.id] ?? []}
-                    onBack={() => setMember(null)} />
+                  /* A record picked in the left pane: its drivers alone, no list of people. */
+                  <DriverGrid record={detailRecord} noun={frame.list.noun} plural={pluralNoun(frame.list.noun)}
+                    sections={frame.sections?.[detailRecord.id] ?? []} onBack={() => setMember(null)} />
+                ) : hasMembers && splitDrivers && frame ? (
+                  <div ref={splitRef} className="flex min-h-0 flex-1 flex-col">
+                    <div className="flex min-h-0 flex-1 flex-col">
+                      <MemberGrid members={gridRows} columns={gridColumns.visible} display={display}
+                        label={pluralNoun(frame.list.noun)}
+                        member={member} peek={peek} onPeek={setPeek}
+                        gridMode={gridMode} bulkSel={bulkSel} onBulkSel={setBulkSel} onMove={moveRow}
+                        configureLabel="Show properties for"
+                        onConfigure={(id) => { setPeek(id); setRightOpen(true); }}
+                        emptyMessage={gridQuery ? `Nothing matches “${gridQuery}”.` : frame.list.empty} />
+                    </div>
+                    {!driversCollapsed && (
+                      <Splitter label="Resize drivers grid" side="end" orientation="horizontal" value={driversShown}
+                        min={DRIVERS.min} max={driversMax} defaultValue={DRIVERS.def} onChange={setDriversHeight} />
+                    )}
+                    <div style={driversCollapsed ? undefined : { height: driversShown }} className="flex shrink-0 flex-col border-t border-line-subtle">
+                      <DriverGrid record={memberById(peek)} noun={frame.list.noun} sections={frame.sections?.[peek ?? ""] ?? []}
+                        collapsed={driversCollapsed} onCollapsed={setDriversCollapsed} />
+                    </div>
+                  </div>
                 ) : hasMembers ? (
                   <MemberGrid members={gridRows} columns={gridColumns.visible} display={display}
                     label={frame ? pluralNoun(frame.list.noun) : undefined}
