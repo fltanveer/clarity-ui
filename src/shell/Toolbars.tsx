@@ -1,17 +1,19 @@
 import { useRef, useState } from "react";
 import {
-  Boxes, Check, ChevronDown, Columns3, Download, Filter, Group, Lock, Maximize2, Menu, Minimize2,
-  Plus, RefreshCw, Search, Settings, SplitSquareHorizontal, Trash2, Upload, X,
+  Boxes, Check, ChevronDown, Columns3, Filter, Group, Lock, Maximize2, Menu, Minimize2,
+  RefreshCw, Search, Settings, SplitSquareHorizontal, Trash2, X,
 } from "lucide-react";
 import { POV_AXES, initialPov, type PovAxis, type PovValue } from "../lib/pov";
 import { ViewList, type ViewListItem } from "../components/ViewList";
 import { Checkbox } from "../components/Checkbox";
 import { controlClass } from "../components/ConfigFields";
 import { DEFAULT_COLUMNS, type DisplaySettings, type GridColumn, type GridMode } from "./types";
-import { MenuDivider, MenuItem, Popover } from "./Popover";
+import { MenuItem, Popover } from "./Popover";
 import { ChromeButton, Pipe } from "./controls";
 import { cx } from "../lib/cx";
 import type { AddAction } from "./LeftPane";
+import { ToolbarView } from "./ToolbarView";
+import { useSettings } from "../settings/SettingsProvider";
 
 /* ── Row 3a · action toolbar ─────────────────────────────────────────────── */
 /*
@@ -27,37 +29,24 @@ export function ActionToolbar({ add, onGridMode, chromeCollapsed, onChromeCollap
   chromeCollapsed: boolean;
   onChromeCollapsed: (c: boolean) => void;
 }) {
-  const [actions, setActions] = useState(false);
-  const ref = useRef<HTMLButtonElement>(null);
+  /* Layout is a company setting (settings/toolbar.ts); what each action does stays here. */
+  const { toolbar } = useSettings().settings;
   return (
-    <div className="on-bar flex h-row-toolbar shrink-0 items-center gap-2 border-b border-mode-ink bg-mode-solid px-edge">
-      {add && onAddMember && (
-        <ChromeButton variant="bar" className="border-on-bar-edge-strong font-semibold" aria-haspopup="dialog" onClick={onAddMember}
-          disabled={!add.enabled} title={add.enabled ? undefined : add.reason}>
-          <Plus size={14} aria-hidden /> {add.label}
-        </ChromeButton>
-      )}
-      <ChromeButton ref={ref} variant="bar" aria-haspopup="menu" aria-expanded={actions} onClick={() => setActions((a) => !a)}>
-        Actions <ChevronDown size={13} aria-hidden />
-      </ChromeButton>
-      <Popover anchorRef={ref} open={actions} onClose={() => setActions(false)} label="Actions" className="w-44 py-1">
-        <MenuItem onSelect={() => { setActions(false); onGridMode("reorder"); }}><Menu size={13} aria-hidden /> Reorder</MenuItem>
-        <MenuDivider />
-        <MenuItem tone="danger" onSelect={() => { setActions(false); onGridMode("delete"); }}><Trash2 size={13} aria-hidden /> Bulk delete</MenuItem>
-      </Popover>
-      <ChromeButton variant="bar"><Download size={14} aria-hidden /> Export</ChromeButton>
-      <div className="ms-auto flex gap-1.5">
-        <ChromeButton variant="bar" aria-label="Import" className="w-8 px-0"><Upload size={14} aria-hidden /></ChromeButton>
-        <ChromeButton variant="bar" aria-label="Refresh" className="w-8 px-0"><RefreshCw size={14} aria-hidden /></ChromeButton>
-        <ChromeButton variant="bar" className="w-8 px-0"
-          onClick={() => onChromeCollapsed(!chromeCollapsed)}
-          aria-label={chromeCollapsed ? "Expand header" : "Collapse header"}
-          aria-keyshortcuts="Control+Shift+F"
-          title={`${chromeCollapsed ? "Expand" : "Collapse"} header (Ctrl+Shift+F)`}>
-          {chromeCollapsed ? <Minimize2 size={14} aria-hidden /> : <Maximize2 size={14} aria-hidden />}
-        </ChromeButton>
-      </div>
-    </div>
+    <ToolbarView items={toolbar} run={{
+      ...(add && onAddMember ? { add: { onSelect: onAddMember, disabled: !add.enabled, title: add.enabled ? undefined : add.reason, label: add.label, ariaHasPopup: "dialog" as const } } : {}),
+      reorder: { onSelect: () => onGridMode("reorder") },
+      bulkDelete: { onSelect: () => onGridMode("delete") },
+      export: {},
+      import: {},
+      refresh: {},
+      toggleHeader: {
+        onSelect: () => onChromeCollapsed(!chromeCollapsed),
+        ariaLabel: chromeCollapsed ? "Expand header" : "Collapse header",
+        ariaKeyShortcuts: "Control+Shift+F",
+        title: `${chromeCollapsed ? "Expand" : "Collapse"} header (Ctrl+Shift+F)`,
+        icon: chromeCollapsed ? <Minimize2 size={14} aria-hidden /> : <Maximize2 size={14} aria-hidden />,
+      },
+    }} />
   );
 }
 

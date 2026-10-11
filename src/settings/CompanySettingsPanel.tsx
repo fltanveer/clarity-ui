@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Drawer } from "../shell/Drawer";
-import { Button, Notice, Segmented } from "../ui";
+import { Button, Notice, Segmented, Tabs } from "../ui";
+import { ToolbarEditor } from "./ToolbarEditor";
 import { DEFAULTS, isDefault, type CompanySettings, type PaneDefault } from "./schema";
 import { useSettings } from "./SettingsProvider";
 import { ColorField } from "./ColorField";
@@ -57,6 +58,7 @@ const PANE_OPTIONS = [{ value: "open", label: "Open" }, { value: "collapsed", la
 export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { company, saved, save, preview, canAdminister } = useSettings();
   const [draft, setDraft] = useState(saved);
+  const [tab, setTab] = useState<"appearance" | "toolbar" | "layout">("appearance");
 
   /* Each opening starts from what is saved. */
   useEffect(() => { if (open) setDraft(saved); }, [open, saved]);
@@ -68,7 +70,7 @@ export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
   return (
-    <Drawer open={open} onClose={close} label="Company settings" className="max-w-[30rem]">
+    <Drawer open={open} onClose={close} label="Company settings" className="max-w-[34rem]">
       <div className="flex shrink-0 items-center gap-3 border-b border-line-subtle px-5 py-4">
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-title font-semibold">Company settings</h2>
@@ -77,13 +79,18 @@ export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose
         <Button variant="ghost" icon size="md" onClick={close} aria-label="Close company settings"><X size={17} aria-hidden /></Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+      {canAdminister && (
+        <Tabs label="Settings sections" panelId="company-settings-panel" value={tab} onChange={setTab} className="shrink-0 px-3"
+          items={[{ key: "appearance", label: "Appearance" }, { key: "toolbar", label: "Toolbar" }, { key: "layout", label: "Layout" }]} />
+      )}
+      <div id="company-settings-panel" role="tabpanel" className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         {canAdminister ? (
           <>
             <Notice className="mt-4" title="Live preview.">
               Changes show across the app as you make them. Save applies them for everyone in {company.name}.
             </Notice>
 
+            {tab === "appearance" && <>
             <Group title="Appearance">
               <Row label="Theme" hint="Match device follows each person's system setting.">
                 <Segmented label="Theme" value={draft.appearance.theme} onChange={(theme) => set("appearance", { theme })}
@@ -112,6 +119,11 @@ export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose
               </Notice>
             )}
 
+            </>}
+
+            {tab === "toolbar" && <ToolbarEditor items={draft.toolbar} onChange={(toolbar) => change({ ...draft, toolbar })} />}
+
+            {tab === "layout" && <>
             <Group title="Layout defaults">
               <Row label="Members pane" hint="Left pane listing records.">
                 <Segmented label="Members pane" value={draft.layout.membersPane} options={PANE_OPTIONS}
@@ -127,6 +139,7 @@ export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose
               </Row>
             </Group>
             <p className="mt-3 text-caption text-fg-tertiary">People can still open and close panes as they work; these set how the app starts.</p>
+            </>}
           </>
         ) : (
           <Notice className="mt-4" tone="warning" title="Admins only.">Your company admin manages these settings.</Notice>

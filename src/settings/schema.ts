@@ -9,6 +9,7 @@
  */
 
 import { isHex } from "./color";
+import { DEFAULT_TOOLBAR, normalizeToolbar, type ToolbarItem } from "./toolbar";
 
 export const VERSION = 1;
 
@@ -31,6 +32,8 @@ export interface CompanySettings {
     /** MODEL mode chrome. */
     model: string | null;
   };
+  /** Action bar layout: order, zone, label, icon, visibility (settings/toolbar.ts). */
+  toolbar: ToolbarItem[];
   /** How the work area opens. People can still open and close panes as they work. */
   layout: {
     membersPane: PaneDefault;
@@ -44,6 +47,7 @@ export const DEFAULTS: CompanySettings = {
   version: VERSION,
   appearance: { theme: "light", density: "comfortable" },
   brand: { menu: null, data: null, model: null },
+  toolbar: DEFAULT_TOOLBAR,
   layout: { membersPane: "open", propertiesPane: "open", details: "open" },
 };
 
@@ -65,6 +69,7 @@ export function normalize(raw: unknown): CompanySettings {
       density: pick(a.density, ["comfortable", "compact"] as const, DEFAULTS.appearance.density),
     },
     brand: { menu: hex(b.menu), data: hex(b.data), model: hex(b.model) },
+    toolbar: normalizeToolbar(r.toolbar ?? DEFAULT_TOOLBAR),
     layout: {
       membersPane: pick(l.membersPane, PANE, DEFAULTS.layout.membersPane),
       propertiesPane: pick(l.propertiesPane, PANE, DEFAULTS.layout.propertiesPane),
