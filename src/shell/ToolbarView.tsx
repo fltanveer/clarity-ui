@@ -2,6 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { ICONS } from "../settings/icons";
 import { ACTIONS, iconOf, labelOf, type ActionId, type ToolbarItem } from "../settings/toolbar";
+import { evaluate, type Facts } from "../settings/rules";
 import { MenuItem, Popover } from "./Popover";
 import { ChromeButton } from "./controls";
 import { cx } from "../lib/cx";
@@ -25,6 +26,8 @@ export interface ActionRuntime {
 export interface ToolbarViewProps {
   items: ToolbarItem[];
   run: Partial<Record<ActionId, ActionRuntime>>;
+  /** When given, each item's "show when" rule is applied. The editor preview omits it and shows everything. */
+  facts?: Facts;
 }
 
 /*
@@ -33,10 +36,10 @@ export interface ToolbarViewProps {
  * the right. Same on-bar buttons for every action; the primary add keeps its
  * stronger edge.
  */
-export function ToolbarView({ items, run }: ToolbarViewProps) {
+export function ToolbarView({ items, run, facts }: ToolbarViewProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLButtonElement>(null);
-  const shown = items.filter((t) => !t.hidden && run[t.id]);
+  const shown = items.filter((t) => !t.hidden && run[t.id] && (!facts || evaluate(t.when, facts)));
   const zone = (z: ToolbarItem["zone"]) => shown.filter((t) => t.zone === z);
 
   const icon = (t: ToolbarItem) => {

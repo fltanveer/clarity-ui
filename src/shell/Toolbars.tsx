@@ -14,6 +14,7 @@ import { cx } from "../lib/cx";
 import type { AddAction } from "./LeftPane";
 import { ToolbarView } from "./ToolbarView";
 import { useSettings } from "../settings/SettingsProvider";
+import type { Facts } from "../settings/rules";
 
 /* ── Row 3a · action toolbar ─────────────────────────────────────────────── */
 /*
@@ -21,7 +22,9 @@ import { useSettings } from "../settings/SettingsProvider";
  * only where the MODE gate allows it. The collapse control lives here because
  * this bar survives the collapse — the undo is never hidden with what it hid.
  */
-export function ActionToolbar({ add, onGridMode, chromeCollapsed, onChromeCollapsed, onAddMember }: {
+export function ActionToolbar({ add, onGridMode, chromeCollapsed, onChromeCollapsed, onAddMember, facts }: {
+  /** Facts for the company's "show when" rules. */
+  facts?: Facts;
   /** Declared add action: null = not offered; disabled is shown with its reason. */
   add: AddAction | null;
   onAddMember?: () => void;
@@ -32,7 +35,7 @@ export function ActionToolbar({ add, onGridMode, chromeCollapsed, onChromeCollap
   /* Layout is a company setting (settings/toolbar.ts); what each action does stays here. */
   const { toolbar } = useSettings().settings;
   return (
-    <ToolbarView items={toolbar} run={{
+    <ToolbarView items={toolbar} facts={facts} run={{
       ...(add && onAddMember ? { add: { onSelect: onAddMember, disabled: !add.enabled, title: add.enabled ? undefined : add.reason, label: add.label, ariaHasPopup: "dialog" as const } } : {}),
       reorder: { onSelect: () => onGridMode("reorder") },
       bulkDelete: { onSelect: () => onGridMode("delete") },

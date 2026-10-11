@@ -11,6 +11,7 @@
 import { isHex } from "./color";
 import { DEFAULT_TOOLBAR, normalizeToolbar, type ToolbarItem } from "./toolbar";
 import { DEFAULT_TABLE, normalizeTable, type TableStyle } from "./table";
+import { DEFAULT_BEHAVIOURS, normalizeBehaviours, type Behaviours } from "./rules";
 
 export const VERSION = 1;
 
@@ -37,6 +38,8 @@ export interface CompanySettings {
   toolbar: ToolbarItem[];
   /** How every grid looks (settings/table.ts). */
   table: TableStyle;
+  /** Built-in conditions the company has tuned (settings/rules.ts). */
+  behaviours: Behaviours;
   /** How the work area opens. People can still open and close panes as they work. */
   layout: {
     membersPane: PaneDefault;
@@ -52,6 +55,7 @@ export const DEFAULTS: CompanySettings = {
   brand: { menu: null, data: null, model: null },
   toolbar: DEFAULT_TOOLBAR,
   table: DEFAULT_TABLE,
+  behaviours: DEFAULT_BEHAVIOURS,
   layout: { membersPane: "open", propertiesPane: "open", details: "open" },
 };
 
@@ -75,6 +79,7 @@ export function normalize(raw: unknown): CompanySettings {
     brand: { menu: hex(b.menu), data: hex(b.data), model: hex(b.model) },
     toolbar: normalizeToolbar(r.toolbar ?? DEFAULT_TOOLBAR),
     table: normalizeTable(r.table),
+    behaviours: normalizeBehaviours(r.behaviours),
     layout: {
       membersPane: pick(l.membersPane, PANE, DEFAULTS.layout.membersPane),
       propertiesPane: pick(l.propertiesPane, PANE, DEFAULTS.layout.propertiesPane),

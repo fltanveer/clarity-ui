@@ -1,4 +1,5 @@
 import { isIconName, type IconName } from "./icons";
+import { ALWAYS, normalizeRule, type Rule } from "./rules";
 
 /*
  * Toolbar as data. The ACTIONS registry is code: what each action does and
@@ -47,9 +48,11 @@ export interface ToolbarItem {
   label: string | null;
   /** null = the action's own icon. */
   icon: IconName | null;
+  /** When it shows (settings/rules.ts). Always, unless the company narrows it. */
+  when: Rule;
 }
 
-const item = (id: ActionId, zone: Zone, display: Display): ToolbarItem => ({ id, zone, display, hidden: false, label: null, icon: null });
+const item = (id: ActionId, zone: Zone, display: Display): ToolbarItem => ({ id, zone, display, hidden: false, label: null, icon: null, when: ALWAYS });
 
 /* Today's bar: Add · Actions ▾ (Reorder, Bulk delete) · Export … Import, Refresh, Collapse. */
 export const DEFAULT_TOOLBAR: ToolbarItem[] = [
@@ -82,6 +85,7 @@ export function normalizeToolbar(raw: unknown): ToolbarItem[] {
       hidden: def.locks?.hidden ? false : x.hidden === true,
       label: def.locks?.label ? null : label,
       icon: def.locks?.icon || !isIconName(x.icon) ? null : x.icon,
+      when: def.locks?.hidden ? ALWAYS : normalizeRule(x.when),
     });
   }
   for (const d of DEFAULT_TOOLBAR) if (!seen.has(d.id)) out.push({ ...d });

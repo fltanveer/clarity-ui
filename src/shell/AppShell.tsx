@@ -24,6 +24,7 @@ import { DEFAULT_COLUMNS, type DisplaySettings, type GridColumn, type GridMode, 
 import { ALL_MODELS, FIXTURE_STRUCTURES, STRUCTURE_COLUMNS, STRUCTURE_TYPE, resolveFrame } from "../lib/fixtures";
 import { DIMENSION_SCHEMA } from "../lib/properties";
 import { useSettings } from "../settings/SettingsProvider";
+import { evaluate, type Facts } from "../settings/rules";
 import type { AddAction } from "./LeftPane";
 
 /* Below this width the centre would fall under its 600px minimum with the rail open. */
@@ -175,7 +176,7 @@ export function AppShell() {
   const [peek, setPeek] = useState<string | null>(null);
   const [gridQuery, setGridQuery] = useState("");
   /* The main grid starts from the company's table style; the Display menu still changes it for this session. */
-  const { table } = useSettings().settings;
+  const { settings: { table, behaviours }, role } = useSettings();
   const [display, setDisplay] = useState<DisplaySettings>({ rowNumbers: table.rowNumbers, gridlines: table.rowLines, zebra: table.zebra });
   useEffect(() => { setDisplay({ rowNumbers: table.rowNumbers, gridlines: table.rowLines, zebra: table.zebra }); },
     [table.rowNumbers, table.rowLines, table.zebra]);
@@ -350,7 +351,15 @@ export function AppShell() {
   const fixtureSections = nested && frame ? frame.sections?.[(peek ?? member)!] ?? [] : undefined;
   /* Drilled into a Model whose records carry drivers: records on top, the picked record's drivers below.
      Only once a Model is chosen in the dropdown — a plan browsed at All Models lists its people alone. */
-  const splitDrivers = mode === "DATA" && !l100 && nested && !picker && frame?.list.role === "Record" && Boolean(frame.sections) && !gridMode;
+  /* What company rules can ask about (settings/rules.ts). */
+  const facts: Facts = {
+    mode, role, domain, structure,
+    modelChosen: nested && !picker,
+    recordSelected: (peek ?? member) !== null,
+  };
+  /* Needs records that carry details; when it shows beyond that is a company rule (default: DATA with a Model chosen). */
+  const splitDrivers = !l100 && nested && frame?.list.role === "Record" && Boolean(frame.sections) && !gridMode
+    && evaluate(behaviours.detailsSplit, facts);
   const driversMax = splitHeight ? Math.max(DRIVERS.min, Math.min(DRIVERS.max, splitHeight - RECORDS_MIN)) : DRIVERS.max;
   const driversShown = Math.min(driversHeight, driversMax);
   /* A pane can only grow into space the grid does not need. */
@@ -444,7 +453,7 @@ export function AppShell() {
                     exitGridMode();
                   }} />
               ) : (
-                <ActionToolbar add={add} onGridMode={setGridMode}
+                <ActionToolbar add={add} onGridMode={setGridMode} facts={facts}
                   onAddMember={hasMembers && structure ? () => setAdding(true) : undefined}
                   chromeCollapsed={chromeCollapsed} onChromeCollapsed={setChromeCollapsed} />
               )}
