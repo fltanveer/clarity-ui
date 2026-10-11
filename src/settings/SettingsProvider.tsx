@@ -85,6 +85,16 @@ export function SettingsProvider({ children, store = browserStore }: { children:
     document.documentElement.dataset.railTone = railTone(brand);
   }, [brand]);
 
+  /* Table style: CSS in theme.css reads these. */
+  const { table } = settings;
+  useEffect(() => {
+    const d = document.documentElement.dataset;
+    d.tableHeader = table.header;
+    d.tableColumns = table.columnLines;
+    d.tableRows = table.rowLines ? "on" : "off";
+    d.tableZebra = table.zebra ? "on" : "off";
+  }, [table]);
+
   const save = useCallback((next: CompanySettings) => {
     if (!canAdminister) return;
     store.save(company.id, next);

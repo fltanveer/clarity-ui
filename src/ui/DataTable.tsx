@@ -36,6 +36,9 @@ export interface DataTableProps<T> {
  * A real <table>, so screen readers announce rows and columns. Put it in a
  * scrolling parent; the header sticks.
  */
+/* Leading bar of the selected row; drawn on its first cell, which paints over the row. */
+const bar = "shadow-[inset_3px_0_0_var(--color-mode-solid)]";
+
 export function DataTable<T>({ columns, rows, rowKey, label, selectedKey, onRowClick, rowNumbers, empty, className }: DataTableProps<T>) {
   const value = (row: T, c: Column<T>) => c.render ? c.render(row) : String((row as Record<string, unknown>)[c.key] ?? "");
   return (
@@ -45,10 +48,10 @@ export function DataTable<T>({ columns, rows, rowKey, label, selectedKey, onRowC
         {columns.map((c) => <col key={c.key} className={c.width} />)}
       </colgroup>
       <thead className="sticky top-0 z-10">
-        <tr className="h-grid-head bg-grid-header text-caption font-semibold whitespace-nowrap text-fg-secondary shadow-[inset_0_-1px_0_var(--color-grid-line-col)]">
+        <tr data-grid-head className="h-grid-head bg-grid-header text-caption font-semibold whitespace-nowrap text-fg-secondary shadow-[inset_0_-1px_0_var(--color-grid-line-col)]">
           {rowNumbers && <th scope="col" className="ps-3.75 pe-2 text-end font-semibold"><span aria-hidden>#</span><span className="sr-only">Row</span></th>}
           {columns.map((c, i) => (
-            <th key={c.key} scope="col"
+            <th key={c.key} scope="col" data-grid-col={i > 0 || undefined}
               className={cx("truncate px-3 font-semibold", c.align === "end" ? "text-end" : "text-start",
                 i === 0 && !rowNumbers && "ps-3.75", i > 0 && "border-s border-grid-line-col")}>
               {c.header}
@@ -56,25 +59,25 @@ export function DataTable<T>({ columns, rows, rowKey, label, selectedKey, onRowC
           ))}
         </tr>
       </thead>
-      <tbody>
+      <tbody data-grid-body>
         {rows.map((row, r) => {
           const key = rowKey(row);
           const on = key === selectedKey;
           return (
-            <tr key={key} aria-selected={onRowClick ? on : undefined}
+            <tr key={key} aria-selected={onRowClick ? on : undefined} data-selected={on || undefined}
               tabIndex={onRowClick ? 0 : undefined}
               onClick={onRowClick && (() => onRowClick(row))}
               onKeyDown={onRowClick && ((e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(row); } })}
               className={cx("h-grid-row border-b border-grid-line",
                 onRowClick && "cursor-pointer",
-                on ? "bg-mode-soft shadow-[inset_3px_0_0_var(--color-mode-solid)]" : onRowClick && "hover:bg-hover")}>
-              {rowNumbers && <td className="ps-3.75 pe-2 text-end text-caption text-fg-tertiary tabular-nums">{r + 1}</td>}
+                on ? "bg-mode-soft" : onRowClick && "hover:bg-hover")}>
+              {rowNumbers && <td className={cx("ps-3.75 pe-2 text-end text-caption text-fg-tertiary tabular-nums", on && bar)}>{r + 1}</td>}
               {columns.map((c, i) => (
-                <td key={c.key}
+                <td key={c.key} data-grid-col={i > 0 || undefined}
                   className={cx("truncate px-3",
                     c.align === "end" ? "text-end tabular-nums" : "text-start",
                     c.muted ? "text-caption text-fg-tertiary" : "text-fg-primary",
-                    i === 0 && !rowNumbers && "ps-3.75", i > 0 && "border-s border-grid-line")}>
+                    i === 0 && !rowNumbers && "ps-3.75", i === 0 && !rowNumbers && on && bar, i > 0 && "border-s border-grid-line")}>
                   {value(row, c)}
                 </td>
               ))}

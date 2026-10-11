@@ -174,7 +174,11 @@ export function AppShell() {
   const [member, setMember] = useState<string | null>(null);
   const [peek, setPeek] = useState<string | null>(null);
   const [gridQuery, setGridQuery] = useState("");
-  const [display, setDisplay] = useState<DisplaySettings>({ rowNumbers: true, gridlines: true, zebra: false });
+  /* The main grid starts from the company's table style; the Display menu still changes it for this session. */
+  const { table } = useSettings().settings;
+  const [display, setDisplay] = useState<DisplaySettings>({ rowNumbers: table.rowNumbers, gridlines: table.rowLines, zebra: table.zebra });
+  useEffect(() => { setDisplay({ rowNumbers: table.rowNumbers, gridlines: table.rowLines, zebra: table.zebra }); },
+    [table.rowNumbers, table.rowLines, table.zebra]);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
   /* Column edits where the fixture declares the columns, keyed by list. */
   const [columnsBy, setColumnsBy] = useState<Record<string, { visible: GridColumn[]; available: GridColumn[] }>>({});

@@ -64,22 +64,22 @@ export function DriverGrid({ record, noun, sections, onBack, plural, collapsed =
               <col className="w-[30%]" /><col className="w-[30%]" /><col />
             </colgroup>
             <thead>
-              <tr className="h-grid-head border-b border-grid-line-col bg-grid-header text-caption font-semibold whitespace-nowrap text-fg-secondary">
+              <tr data-grid-head className="h-grid-head border-b border-grid-line-col bg-grid-header text-caption font-semibold whitespace-nowrap text-fg-secondary">
                 <th scope="col" className={cx(NAME_INSET, "pe-3 text-start font-semibold")}>Driver</th>
-                <th scope="col" className="border-s border-grid-line-col px-3 text-end font-semibold">Value</th>
-                <th scope="col" className="border-s border-grid-line-col px-3 text-start font-semibold">Source</th>
+                <th scope="col" data-grid-col className="border-s border-grid-line-col px-3 text-end font-semibold">Value</th>
+                <th scope="col" data-grid-col className="border-s border-grid-line-col px-3 text-start font-semibold">Source</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody data-grid-body>
               {fields.map((f) => {
                 const blank = f.v === undefined || f.v === "";
                 return (
                   <tr key={f.l} className="h-grid-row border-b border-grid-line hover:bg-hover">
                     <th scope="row" className={cx(NAME_INSET, "truncate pe-3 text-start font-normal text-fg-primary")}>{f.l}</th>
-                    <td className="truncate border-s border-grid-line px-3 text-end tabular-nums">
+                    <td data-grid-col className="truncate border-s border-grid-line px-3 text-end tabular-nums">
                       {blank ? <span className="text-caption text-fg-tertiary italic">Not supplied</span> : String(f.v)}
                     </td>
-                    <td className="truncate border-s border-grid-line px-3 text-caption text-fg-tertiary">
+                    <td data-grid-col className="truncate border-s border-grid-line px-3 text-caption text-fg-tertiary">
                       {f.src ? `Derived · ${f.src}` : ""}
                     </td>
                   </tr>

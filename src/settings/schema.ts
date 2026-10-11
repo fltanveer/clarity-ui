@@ -10,6 +10,7 @@
 
 import { isHex } from "./color";
 import { DEFAULT_TOOLBAR, normalizeToolbar, type ToolbarItem } from "./toolbar";
+import { DEFAULT_TABLE, normalizeTable, type TableStyle } from "./table";
 
 export const VERSION = 1;
 
@@ -34,6 +35,8 @@ export interface CompanySettings {
   };
   /** Action bar layout: order, zone, label, icon, visibility (settings/toolbar.ts). */
   toolbar: ToolbarItem[];
+  /** How every grid looks (settings/table.ts). */
+  table: TableStyle;
   /** How the work area opens. People can still open and close panes as they work. */
   layout: {
     membersPane: PaneDefault;
@@ -48,6 +51,7 @@ export const DEFAULTS: CompanySettings = {
   appearance: { theme: "light", density: "comfortable" },
   brand: { menu: null, data: null, model: null },
   toolbar: DEFAULT_TOOLBAR,
+  table: DEFAULT_TABLE,
   layout: { membersPane: "open", propertiesPane: "open", details: "open" },
 };
 
@@ -70,6 +74,7 @@ export function normalize(raw: unknown): CompanySettings {
     },
     brand: { menu: hex(b.menu), data: hex(b.data), model: hex(b.model) },
     toolbar: normalizeToolbar(r.toolbar ?? DEFAULT_TOOLBAR),
+    table: normalizeTable(r.table),
     layout: {
       membersPane: pick(l.membersPane, PANE, DEFAULTS.layout.membersPane),
       propertiesPane: pick(l.propertiesPane, PANE, DEFAULTS.layout.propertiesPane),

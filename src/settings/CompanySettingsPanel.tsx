@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { Drawer } from "../shell/Drawer";
 import { Button, Notice, Segmented, Tabs } from "../ui";
 import { ToolbarEditor } from "./ToolbarEditor";
+import { TableEditor } from "./TableEditor";
 import { DEFAULTS, isDefault, type CompanySettings, type PaneDefault } from "./schema";
 import { useSettings } from "./SettingsProvider";
 import { ColorField } from "./ColorField";
@@ -58,7 +59,7 @@ const PANE_OPTIONS = [{ value: "open", label: "Open" }, { value: "collapsed", la
 export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { company, saved, save, preview, canAdminister } = useSettings();
   const [draft, setDraft] = useState(saved);
-  const [tab, setTab] = useState<"appearance" | "toolbar" | "layout">("appearance");
+  const [tab, setTab] = useState<"appearance" | "toolbar" | "tables" | "layout">("appearance");
 
   /* Each opening starts from what is saved. */
   useEffect(() => { if (open) setDraft(saved); }, [open, saved]);
@@ -81,7 +82,7 @@ export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose
 
       {canAdminister && (
         <Tabs label="Settings sections" panelId="company-settings-panel" value={tab} onChange={setTab} className="shrink-0 px-3"
-          items={[{ key: "appearance", label: "Appearance" }, { key: "toolbar", label: "Toolbar" }, { key: "layout", label: "Layout" }]} />
+          items={[{ key: "appearance", label: "Appearance" }, { key: "toolbar", label: "Toolbar" }, { key: "tables", label: "Tables" }, { key: "layout", label: "Layout" }]} />
       )}
       <div id="company-settings-panel" role="tabpanel" className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         {canAdminister ? (
@@ -122,6 +123,8 @@ export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose
             </>}
 
             {tab === "toolbar" && <ToolbarEditor items={draft.toolbar} onChange={(toolbar) => change({ ...draft, toolbar })} />}
+
+            {tab === "tables" && <TableEditor value={draft.table} onChange={(table) => change({ ...draft, table })} />}
 
             {tab === "layout" && <>
             <Group title="Layout defaults">

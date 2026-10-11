@@ -291,3 +291,36 @@
     pointer-events: auto;
   }
 }
+
+/*
+ * Company table style · data-table-* on <html> (settings/table.ts). Unlayered,
+ * so it outranks the grid utilities it adjusts. Grids opt in with markers:
+ * data-grid-head (header row), data-grid-body (table body), data-grid-col
+ * (cells after the first), data-grid-flexrow (rows of the flex member grid).
+ */
+[data-table-header="plain"] [data-grid-head] { background-color: var(--color-surface); }
+[data-table-header="strong"] [data-grid-head] {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: 700;
+  color: var(--color-fg-primary);
+}
+/* Width, not colour: a transparent collapsed border lets the table's white show through on tinted rows. */
+[data-table-columns="none"] [data-grid-col] { border-inline-start-width: 0; }
+[data-table-rows="off"] [data-grid-body] > tr { border-bottom-color: transparent; }
+[data-table-zebra="on"] [data-grid-body] > tr:nth-child(even):not([data-selected]) { background-color: var(--color-grid-container); }
+
+/* "All": the flex member grid draws a line before every column after the row number. */
+[data-table-columns="all"] [data-grid-flexrow] > :not(:first-child):not(:last-child):not(.contents),
+[data-table-columns="all"] [data-grid-flexrow] > .contents > * {
+  align-self: stretch;
+  border-inline-start: 1px solid var(--color-grid-line-col);
+  padding-inline-start: 0.625rem;
+  line-height: var(--spacing-grid-row);
+  white-space: nowrap;
+  overflow: hidden;
+}
+[data-table-columns="all"] [data-grid-head][data-grid-flexrow] > * { line-height: var(--spacing-grid-head); }
+[data-table-columns="all"] [data-grid-flexrow] svg { flex-shrink: 0; }
+/* Cells repaint their row's background, so no subpixel seam shows between them. */
+[data-grid-head] > *, [data-grid-body] > tr > * { background-color: inherit; }
