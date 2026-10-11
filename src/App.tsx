@@ -1,16 +1,27 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { AppShell } from "./shell/AppShell";
-import { StyleguidePage } from "./styleguide/StyleguidePage";
+import { SettingsProvider } from "./settings/SettingsProvider";
 
-const isStyleguide = () => location.hash === "#styleguide";
+/* Reference pages load only when opened, so the product bundle stays lean. */
+const StyleguidePage = lazy(() => import("./styleguide/StyleguidePage").then((m) => ({ default: m.StyleguidePage })));
+const ComponentsPage = lazy(() => import("./ui-docs/ComponentsPage").then((m) => ({ default: m.ComponentsPage })));
 
-/* The product is the shell. The styleguide is a reference page at #styleguide. */
+type Route = "app" | "styleguide" | "components";
+const route = (): Route => location.hash === "#styleguide" ? "styleguide"
+  : location.hash.startsWith("#components") ? "components" : "app";
+
+/* The product is the shell. Reference pages: #styleguide (tokens), #components (component library). */
 export function App() {
-  const [styleguide, setStyleguide] = useState(isStyleguide);
+  const [page, setPage] = useState(route);
   useEffect(() => {
-    const onHash = () => setStyleguide(isStyleguide());
+    const onHash = () => setPage(route());
     addEventListener("hashchange", onHash);
     return () => removeEventListener("hashchange", onHash);
   }, []);
-  return styleguide ? <StyleguidePage /> : <AppShell />;
+  return (
+    <SettingsProvider>
+      {page === "app" ? <AppShell />
+        : <Suspense fallback={null}>{page === "styleguide" ? <StyleguidePage /> : <ComponentsPage />}</Suspense>}
+    </SettingsProvider>
+  );
 }

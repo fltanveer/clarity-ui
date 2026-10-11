@@ -6,6 +6,43 @@
     "data-ink": "#1A47A8",
     "data-soft": "#E8EFFD",
     "data-solid": "#235FE0",
+    "dk-action": "#D08A5E",
+    "dk-amber-soft": "#3A2A0B",
+    "dk-amber-text": "#F5B942",
+    "dk-canvas": "#121110",
+    "dk-control-track": "#6E6961",
+    "dk-data-ink": "#93B4FF",
+    "dk-data-soft": "#1A2742",
+    "dk-data-solid": "#195AE6",
+    "dk-focus": "#F97316",
+    "dk-green-text": "#63D19E",
+    "dk-grid-container": "#171615",
+    "dk-grid-header": "#22201D",
+    "dk-grid-line": "#2B2926",
+    "dk-grid-line-col": "#34322E",
+    "dk-ink": "#EDEAE5",
+    "dk-ink-2": "#C4BEB5",
+    "dk-ink-3": "#A29C93",
+    "dk-ink-4": "#8A847B",
+    "dk-ink-disabled": "#5E5A54",
+    "dk-l100-ink": "#C6AAF6",
+    "dk-l100-soft": "#261B3D",
+    "dk-l100-solid": "#7645CE",
+    "dk-line": "#2F2D29",
+    "dk-line-control": "#4A4640",
+    "dk-line-control-hover": "#6A655D",
+    "dk-line-strong": "#3E3B36",
+    "dk-model-ink": "#6FD3A8",
+    "dk-model-soft": "#12291F",
+    "dk-model-solid": "#0A7652",
+    "dk-red-soft": "#3B1717",
+    "dk-red-text": "#F48A8A",
+    "dk-shell": "#191816",
+    "dk-shell-alt": "#24221F",
+    "dk-slate-line": "#3A4658",
+    "dk-slate-soft": "#1E2530",
+    "dk-slate-text": "#CBD5E1",
+    "dk-surface": "#1C1B19",
     "focus-orange": "#EA580C",
     "green-700": "#0B7C56",
     "grid-container": "#FBFBFC",
@@ -119,13 +156,78 @@
       "mode-deep": "l100-ink"
     }
   },
+  "darkRoles": {
+    "canvas": "dk-canvas",
+    "shell": "dk-shell",
+    "shell-alt": "dk-shell-alt",
+    "surface": "dk-surface",
+    "subtle": "dk-grid-header",
+    "hover": "dk-shell-alt",
+    "inverse": "dk-ink",
+    "grid-container": "dk-grid-container",
+    "grid-line": "dk-grid-line",
+    "grid-line-col": "dk-grid-line-col",
+    "grid-header": "dk-grid-header",
+    "fg-primary": "dk-ink",
+    "fg-secondary": "dk-ink-2",
+    "fg-tertiary": "dk-ink-3",
+    "fg-icon": "dk-ink-4",
+    "fg-disabled": "dk-ink-disabled",
+    "fg-on-inverse": "dk-surface",
+    "line-subtle": "dk-line",
+    "line-strong": "dk-line-strong",
+    "line-control": "dk-line-control",
+    "line-control-hover": "dk-line-control-hover",
+    "control-track": "dk-control-track",
+    "action": "dk-action",
+    "focus": "dk-focus",
+    "l100-solid": "dk-l100-solid",
+    "l100-soft": "dk-l100-soft",
+    "l100-ink": "dk-l100-ink",
+    "danger-text": "dk-red-text",
+    "danger-soft": "dk-red-soft",
+    "warning-icon": "dk-amber-text",
+    "warning-text": "dk-amber-text",
+    "warning-soft": "dk-amber-soft",
+    "success-text": "dk-green-text",
+    "success-icon": "dk-green-text",
+    "success-soft": "dk-model-soft",
+    "info-text": "dk-slate-text",
+    "info-soft": "dk-slate-soft",
+    "info-line": "dk-slate-line"
+  },
+  "darkModeRoles": {
+    "DATA": {
+      "mode-solid": "dk-data-solid",
+      "mode-soft": "dk-data-soft",
+      "mode-ink": "dk-data-ink",
+      "mode-deep": "data-ink"
+    },
+    "MODEL": {
+      "mode-solid": "dk-model-solid",
+      "mode-soft": "dk-model-soft",
+      "mode-ink": "dk-model-ink",
+      "mode-deep": "model-ink"
+    },
+    "L100": {
+      "mode-solid": "dk-l100-solid",
+      "mode-soft": "dk-l100-soft",
+      "mode-ink": "dk-l100-ink",
+      "mode-deep": "l100-ink"
+    }
+  },
   "modes": [
     "DATA",
     "MODEL",
     "L100"
   ],
+  "themes": [
+    "light",
+    "dark"
+  ],
   "report": [
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-primary",
       "bg": "surface",
@@ -134,6 +236,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-primary",
       "bg": "shell",
@@ -142,6 +245,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-primary",
       "bg": "shell-alt",
@@ -150,6 +254,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-secondary",
       "bg": "surface",
@@ -158,6 +263,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-secondary",
       "bg": "shell",
@@ -166,6 +272,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-secondary",
       "bg": "shell-alt",
@@ -174,6 +281,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-secondary",
       "bg": "grid-header",
@@ -182,6 +290,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-tertiary",
       "bg": "surface",
@@ -190,6 +299,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-tertiary",
       "bg": "shell",
@@ -198,6 +308,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-tertiary",
       "bg": "shell-alt",
@@ -206,6 +317,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-tertiary",
       "bg": "canvas",
@@ -214,6 +326,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-tertiary",
       "bg": "grid-header",
@@ -222,6 +335,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "fg-tertiary",
       "bg": "mode-soft",
@@ -230,6 +344,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "fg-tertiary",
       "bg": "mode-soft",
@@ -238,6 +353,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "fg-tertiary",
       "bg": "mode-soft",
@@ -246,6 +362,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-icon",
       "bg": "surface",
@@ -254,6 +371,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-icon",
       "bg": "shell-alt",
@@ -262,6 +380,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-icon",
       "bg": "shell",
@@ -270,6 +389,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "control-track",
       "bg": "surface",
@@ -278,6 +398,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "control-thumb",
       "bg": "control-track",
@@ -286,6 +407,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "control-thumb",
       "bg": "mode-solid",
@@ -294,6 +416,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "control-thumb",
       "bg": "mode-solid",
@@ -302,6 +425,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "control-thumb",
       "bg": "mode-solid",
@@ -310,6 +434,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "fg-on-accent",
       "bg": "mode-solid",
@@ -318,6 +443,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "fg-on-accent",
       "bg": "mode-solid",
@@ -326,6 +452,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "fg-on-accent",
       "bg": "mode-solid",
@@ -334,6 +461,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "fg-on-accent",
       "bg": "mode-solid + 10% white",
@@ -342,6 +470,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "fg-on-accent",
       "bg": "mode-solid + 10% white",
@@ -350,6 +479,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "fg-on-accent",
       "bg": "mode-solid + 10% white",
@@ -358,6 +488,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "mode-ink",
       "bg": "mode-soft",
@@ -366,6 +497,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "mode-ink",
       "bg": "mode-soft",
@@ -374,6 +506,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "mode-ink",
       "bg": "mode-soft",
@@ -382,6 +515,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "mode-ink",
       "bg": "surface",
@@ -390,6 +524,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "mode-ink",
       "bg": "surface",
@@ -398,6 +533,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "mode-ink",
       "bg": "surface",
@@ -406,6 +542,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "mode-ink",
       "bg": "shell",
@@ -414,6 +551,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "mode-ink",
       "bg": "shell",
@@ -422,6 +560,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "mode-ink",
       "bg": "shell",
@@ -430,6 +569,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "mode-solid",
       "bg": "shell",
@@ -438,6 +578,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "mode-solid",
       "bg": "shell",
@@ -446,6 +587,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "mode-solid",
       "bg": "shell",
@@ -454,6 +596,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "mode-solid",
       "bg": "shell-alt",
@@ -462,6 +605,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "mode-solid",
       "bg": "shell-alt",
@@ -470,6 +614,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "mode-solid",
       "bg": "shell-alt",
@@ -478,6 +623,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "focus",
       "bg": "surface",
@@ -486,6 +632,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "focus",
       "bg": "shell",
@@ -494,6 +641,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "focus",
       "bg": "shell-alt",
@@ -502,6 +650,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "focus",
       "bg": "grid-header",
@@ -510,6 +659,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "fg-on-inverse",
       "bg": "mode-solid",
@@ -518,6 +668,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "fg-on-inverse",
       "bg": "mode-solid",
@@ -526,6 +677,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "fg-on-inverse",
       "bg": "mode-solid",
@@ -534,6 +686,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "rail-fg",
       "bg": "rail-bg",
@@ -542,6 +695,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "rail-fg-secondary",
       "bg": "rail-bg",
@@ -550,6 +704,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "DATA",
       "fg": "rail-fg",
       "bg": "mode-deep",
@@ -558,6 +713,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "MODEL",
       "fg": "rail-fg",
       "bg": "mode-deep",
@@ -566,6 +722,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "L100",
       "fg": "rail-fg",
       "bg": "mode-deep",
@@ -574,6 +731,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "rail-fg-tertiary",
       "bg": "rail-bg",
@@ -582,6 +740,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "rail-fg-quiet",
       "bg": "rail-bg",
@@ -590,6 +749,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "action",
       "bg": "shell",
@@ -598,6 +758,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "action",
       "bg": "surface",
@@ -606,6 +767,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "l100-ink",
       "bg": "l100-soft",
@@ -614,6 +776,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-on-accent",
       "bg": "l100-solid",
@@ -622,6 +785,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "danger-text",
       "bg": "surface",
@@ -630,6 +794,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "danger-text",
       "bg": "shell",
@@ -638,6 +803,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-on-danger",
       "bg": "danger-solid",
@@ -646,6 +812,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "danger-text",
       "bg": "danger-soft",
@@ -654,6 +821,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-on-accent",
       "bg": "warning-solid",
@@ -662,6 +830,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "warning-text",
       "bg": "warning-soft",
@@ -670,6 +839,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "warning-icon",
       "bg": "surface",
@@ -678,6 +848,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "success-text",
       "bg": "surface",
@@ -686,6 +857,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "success-icon",
       "bg": "success-soft",
@@ -694,6 +866,7 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "info-text",
       "bg": "info-soft",
@@ -702,11 +875,642 @@
       "pass": true
     },
     {
+      "theme": "light",
       "mode": "—",
       "fg": "fg-on-inverse",
       "bg": "inverse",
       "min": 4.5,
       "ratio": 16.25,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-primary",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 14.34,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-primary",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 14.79,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-primary",
+      "bg": "shell-alt",
+      "min": 4.5,
+      "ratio": 13.22,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-secondary",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 9.33,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-secondary",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 9.61,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-secondary",
+      "bg": "shell-alt",
+      "min": 4.5,
+      "ratio": 8.6,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-secondary",
+      "bg": "grid-header",
+      "min": 4.5,
+      "ratio": 8.81,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 6.32,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 6.52,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "shell-alt",
+      "min": 4.5,
+      "ratio": 5.83,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "canvas",
+      "min": 4.5,
+      "ratio": 6.93,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-tertiary",
+      "bg": "grid-header",
+      "min": 4.5,
+      "ratio": 5.97,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "fg-tertiary",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 5.46,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "fg-tertiary",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 5.66,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "fg-tertiary",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 5.9,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-icon",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 4.64,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-icon",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 4.28,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-icon",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 4.79,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "control-track",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 3.16,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "control-thumb",
+      "bg": "control-track",
+      "min": 3,
+      "ratio": 5.45,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "control-thumb",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 5.76,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "control-thumb",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 5.64,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "control-thumb",
+      "bg": "mode-solid",
+      "min": 3,
+      "ratio": 5.98,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid",
+      "min": 4.5,
+      "ratio": 5.76,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid",
+      "min": 4.5,
+      "ratio": 5.64,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid",
+      "min": 4.5,
+      "ratio": 5.98,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid + 10% white",
+      "min": 4.5,
+      "ratio": 4.77,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid + 10% white",
+      "min": 4.5,
+      "ratio": 4.61,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "fg-on-accent",
+      "bg": "mode-solid + 10% white",
+      "min": 4.5,
+      "ratio": 4.86,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 7.23,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 8.48,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 8.02,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "mode-ink",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 8.37,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "mode-ink",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 9.47,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "mode-ink",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 8.59,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "mode-ink",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 8.63,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "mode-ink",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 9.77,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "mode-ink",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 8.86,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "mode-ink",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 7.72,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "mode-ink",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 8.73,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "mode-ink",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 7.92,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 7.23,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 8.48,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "mode-ink",
+      "bg": "mode-soft",
+      "min": 4.5,
+      "ratio": 8.02,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "focus",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 6.14,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "focus",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 6.33,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "focus",
+      "bg": "shell-alt",
+      "min": 3,
+      "ratio": 5.66,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "focus",
+      "bg": "grid-header",
+      "min": 3,
+      "ratio": 5.8,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "rail-fg",
+      "bg": "rail-bg",
+      "min": 4.5,
+      "ratio": 15.78,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "rail-fg-secondary",
+      "bg": "rail-bg",
+      "min": 4.5,
+      "ratio": 8.3,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "DATA",
+      "fg": "rail-fg",
+      "bg": "mode-deep",
+      "min": 4.5,
+      "ratio": 7.29,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "MODEL",
+      "fg": "rail-fg",
+      "bg": "mode-deep",
+      "min": 4.5,
+      "ratio": 6.89,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "L100",
+      "fg": "rail-fg",
+      "bg": "mode-deep",
+      "min": 4.5,
+      "ratio": 9.8,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "rail-fg-tertiary",
+      "bg": "rail-bg",
+      "min": 4.5,
+      "ratio": 6.16,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "rail-fg-quiet",
+      "bg": "rail-bg",
+      "min": 4.5,
+      "ratio": 5.41,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "action",
+      "bg": "shell",
+      "min": 3,
+      "ratio": 6.32,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "action",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 6.13,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "l100-ink",
+      "bg": "l100-soft",
+      "min": 4.5,
+      "ratio": 8.02,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-on-accent",
+      "bg": "l100-solid",
+      "min": 4.5,
+      "ratio": 5.98,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "danger-text",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 7.25,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "danger-text",
+      "bg": "shell",
+      "min": 4.5,
+      "ratio": 7.48,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-on-danger",
+      "bg": "danger-solid",
+      "min": 4.5,
+      "ratio": 6.47,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "danger-text",
+      "bg": "danger-soft",
+      "min": 4.5,
+      "ratio": 6.7,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-on-accent",
+      "bg": "warning-solid",
+      "min": 4.5,
+      "ratio": 5.02,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "warning-text",
+      "bg": "warning-soft",
+      "min": 4.5,
+      "ratio": 7.85,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "warning-icon",
+      "bg": "surface",
+      "min": 3,
+      "ratio": 9.75,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "success-text",
+      "bg": "surface",
+      "min": 4.5,
+      "ratio": 9.13,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "success-icon",
+      "bg": "success-soft",
+      "min": 3,
+      "ratio": 8.18,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "info-text",
+      "bg": "info-soft",
+      "min": 4.5,
+      "ratio": 10.38,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "mode": "—",
+      "fg": "fg-on-inverse",
+      "bg": "inverse",
+      "min": 4.5,
+      "ratio": 14.34,
       "pass": true
     }
   ]

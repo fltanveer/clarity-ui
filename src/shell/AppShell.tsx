@@ -23,6 +23,7 @@ import { Splitter } from "./Splitter";
 import { DEFAULT_COLUMNS, type DisplaySettings, type GridColumn, type GridMode, type Mode } from "./types";
 import { ALL_MODELS, FIXTURE_STRUCTURES, STRUCTURE_COLUMNS, STRUCTURE_TYPE, resolveFrame } from "../lib/fixtures";
 import { DIMENSION_SCHEMA } from "../lib/properties";
+import { useSettings } from "../settings/SettingsProvider";
 import type { AddAction } from "./LeftPane";
 
 /* Below this width the centre would fall under its 600px minimum with the rail open. */
@@ -128,18 +129,21 @@ export function AppShell() {
   const [structure, setStructure] = useState<string | null>(firstStructure(firstDomain("dimensions")));
   const [railExpanded, setRailExpanded] = useState(() => window.innerWidth >= NARROW);
   const [chromeCollapsed, setChromeCollapsed] = useState(false);
-  const [leftCollapsed, setLeftCollapsed] = useState(() => window.innerWidth < MEMBERS_NARROW);
-  const [rightOpen, setRightOpen] = useState(true);
+  /* Starting layout is a company setting (admin); people still open and close panes as they work. */
+  const { layout } = useSettings().settings;
+  const [leftCollapsed, setLeftCollapsed] = useState(() => window.innerWidth < MEMBERS_NARROW || layout.membersPane === "collapsed");
+  const [rightOpen, setRightOpen] = useState(layout.propertiesPane === "open");
   const [leftWidth, setLeftWidth] = useState(() => readWidth(LEFT));
   const [rightWidth, setRightWidth] = useState(() => readWidth(RIGHT));
   useEffect(() => { try { window.localStorage.setItem(LEFT.key, String(leftWidth)); } catch { /* storage unavailable */ } }, [leftWidth]);
   useEffect(() => { try { window.localStorage.setItem(RIGHT.key, String(rightWidth)); } catch { /* storage unavailable */ } }, [rightWidth]);
   const [driversHeight, setDriversHeight] = useState(() => readWidth(DRIVERS));
   useEffect(() => { try { window.localStorage.setItem(DRIVERS.key, String(driversHeight)); } catch { /* storage unavailable */ } }, [driversHeight]);
-  const [driversCollapsed, setDriversCollapsed] = useState(() => {
-    try { return window.localStorage.getItem("clarity.driversCollapsed") === "1"; } catch { return false; }
-  });
-  useEffect(() => { try { window.localStorage.setItem("clarity.driversCollapsed", driversCollapsed ? "1" : "0"); } catch { /* storage unavailable */ } }, [driversCollapsed]);
+  const [driversCollapsed, setDriversCollapsed] = useState(layout.details === "collapsed");
+  /* An admin changing the defaults (preview or save) re-applies them now. */
+  useEffect(() => { setLeftCollapsed(window.innerWidth < MEMBERS_NARROW || layout.membersPane === "collapsed"); }, [layout.membersPane]);
+  useEffect(() => { setRightOpen(layout.propertiesPane === "open"); }, [layout.propertiesPane]);
+  useEffect(() => { setDriversCollapsed(layout.details === "collapsed"); }, [layout.details]);
   /* Height the records and drivers grids share; 0 until measured. */
   const [splitHeight, setSplitHeight] = useState(0);
   const splitObserver = useRef<ResizeObserver | null>(null);

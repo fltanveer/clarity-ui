@@ -1,5 +1,5 @@
 import { Fragment, useRef, useState } from "react";
-import { Archive, Check, ChevronDown, Lock, LogOut, Plus, Search, Star, UserCog, X } from "lucide-react";
+import { Archive, Check, ChevronDown, ChevronRight, Lock, LogOut, Plus, Search, SlidersHorizontal, Star, UserCog, X } from "lucide-react";
 import { contextSelectors, workspaceLabel, type WorkspaceId } from "../lib/nav";
 import { SUBSCRIBERS, USER, initials } from "../lib/session";
 import { Popover } from "./Popover";
@@ -7,6 +7,9 @@ import { ChromeButton } from "./controls";
 import { Drawer } from "./Drawer";
 import { cx } from "../lib/cx";
 import { term, type Term } from "../lib/terms";
+import { useSettings } from "../settings/SettingsProvider";
+import { CompanySettingsPanel } from "../settings/CompanySettingsPanel";
+import { Segmented } from "../ui";
 
 export interface HeaderProps {
   workspace: WorkspaceId;
@@ -118,6 +121,7 @@ function Selector({ label, options, narrowed }: { label: string; options: string
 /* B4 · one session chip: who you are and which plan you are in. Opens the account drawer. */
 function SessionChip({ l100 }: { l100: boolean }) {
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const current = SUBSCRIBERS.flatMap((s) => s.plans.map((p) => ({ s, p }))).find((x) => x.p.current);
   return (
     <>
@@ -141,8 +145,10 @@ function SessionChip({ l100 }: { l100: boolean }) {
         <ChevronDown size={13} aria-hidden className="shrink-0 text-fg-tertiary" />
       </button>
       <Drawer open={open} onClose={() => setOpen(false)} label="Account and plans">
-        <SwitcherPanel onClose={() => setOpen(false)} l100={l100} />
+        <SwitcherPanel onClose={() => setOpen(false)} l100={l100}
+          onCompanySettings={() => { setOpen(false); setSettingsOpen(true); }} />
       </Drawer>
+      <CompanySettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }
@@ -153,7 +159,8 @@ function SessionChip({ l100 }: { l100: boolean }) {
  * Colour is reserved for "you are here" (the mode tint on the current plan);
  * everything else is neutral, so the current plan is findable at a glance.
  */
-function SwitcherPanel({ onClose, l100 }: { onClose: () => void; l100: boolean }) {
+function SwitcherPanel({ onClose, l100, onCompanySettings }: { onClose: () => void; l100: boolean; onCompanySettings: () => void }) {
+  const { company, role, canAdminister, setDemoRole } = useSettings();
   const [q, setQ] = useState("");
   const [openSub, setOpenSub] = useState<string | null>("mg");
   const [pinned, setPinned] = useState("mc");
@@ -192,6 +199,31 @@ function SwitcherPanel({ onClose, l100 }: { onClose: () => void; l100: boolean }
           </span>
         </div>
       </div>
+
+      {/* Company settings: admins get the door; members are told who holds it. */}
+      {!l100 && (
+        <div className="shrink-0 px-5 pt-3">
+          {canAdminister ? (
+            <button type="button" onClick={onCompanySettings}
+              className="flex w-full cursor-pointer items-center gap-3 rounded-panel border border-line-subtle px-3 py-2.5 text-start hover:bg-hover">
+              <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-control bg-shell text-fg-secondary">
+                <SlidersHorizontal size={15} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-ui font-semibold text-fg-primary">Company settings</span>
+                <span className="block truncate text-caption text-fg-tertiary">Theme, density, layout for {company.name}</span>
+              </span>
+              <span className="shrink-0 rounded-chip bg-mode-soft px-1.5 py-px text-micro font-semibold tracking-eyebrow text-mode-ink uppercase">{role}</span>
+              <ChevronRight size={14} aria-hidden className="shrink-0 text-fg-tertiary" />
+            </button>
+          ) : (
+            <p className="flex items-center gap-2 rounded-panel border border-line-subtle px-3 py-2.5 text-caption text-fg-tertiary">
+              <Lock size={13} aria-hidden className="shrink-0" />
+              <span className="flex-1">You are a {role} of {company.name}. Company settings are managed by your admin.</span>
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="shrink-0 px-5 pt-4 pb-2">
         <label className="flex h-control-form items-center gap-2 rounded-control border border-line-control bg-surface px-2.5 hover:border-line-control-hover">
@@ -275,6 +307,17 @@ function SwitcherPanel({ onClose, l100 }: { onClose: () => void; l100: boolean }
         })}
         {!shown.length && <p className="p-4 text-center text-ui text-fg-tertiary">No organisations or plans match “{q}”.</p>}
       </div>
+
+      {/* Demo only: there is no sign-in yet, so the role can be switched here to try both views. */}
+      {!l100 && (
+        <div className="flex shrink-0 items-center gap-2 border-t border-dashed border-line-strong px-5 py-2">
+          <span className="min-w-0 flex-1 text-caption text-fg-tertiary">
+            <span className="font-semibold text-fg-secondary">Demo</span> · sign in as
+          </span>
+          <Segmented label="Demo role" value={role} onChange={setDemoRole}
+            options={[{ value: "Admin", label: "Admin" }, { value: "Member", label: "Member" }]} />
+        </div>
+      )}
 
       <div className="flex shrink-0 items-center gap-2 border-t border-line-subtle bg-shell px-5 py-3">
         <ChromeButton className="h-control-h flex-1 text-ui">

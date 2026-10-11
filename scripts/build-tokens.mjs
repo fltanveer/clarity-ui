@@ -4,7 +4,7 @@
  * Exits non-zero if any pair fails, so a bad palette never reaches a component.
  */
 import { writeFileSync } from "node:fs";
-import { primitives, roles, modeRoles, pairs } from "../tokens/color.mjs";
+import { primitives, roles, modeRoles, darkRoles, darkModeRoles, pairs } from "../tokens/color.mjs";
 
 const MODES = Object.keys(modeRoles);
 
@@ -25,29 +25,34 @@ const lift = (hex, alpha) => "#" + channels(hex)
   .join("").toUpperCase();
 
 /* ── validate references ────────────────────────────────────────────────── */
-const allRefs = [...Object.values(roles), ...MODES.flatMap((m) => Object.values(modeRoles[m]))];
+const allRefs = [...Object.values(roles), ...MODES.flatMap((m) => Object.values(modeRoles[m])),
+  ...Object.values(darkRoles), ...MODES.flatMap((m) => Object.values(darkModeRoles[m]))];
+for (const r of Object.keys(darkRoles)) if (!roles[r]) throw new Error(`darkRoles names unknown role "${r}"`);
 for (const ref of allRefs) {
   if (!primitives[ref]) throw new Error(`Role references unknown primitive "${ref}"`);
 }
 const modeRoleNames = new Set(Object.keys(modeRoles.DATA));
-const resolve = (role, mode) => {
-  if (modeRoleNames.has(role)) return primitives[modeRoles[mode][role]];
+const THEMES = ["light", "dark"];
+const resolve = (role, mode, theme = "light") => {
+  const dark = theme === "dark";
+  if (modeRoleNames.has(role)) return primitives[(dark ? darkModeRoles : modeRoles)[mode][role]];
   if (!roles[role]) throw new Error(`Pair references unknown role "${role}"`);
-  return primitives[roles[role]];
+  return primitives[(dark && darkRoles[role]) || roles[role]];
 };
 
 /* ── contrast gate ──────────────────────────────────────────────────────── */
 const report = [];
 let failures = 0;
-for (const [fg, bg, min, opts = {}] of pairs) {
+for (const theme of THEMES) for (const [fg, bg, min, opts = {}] of pairs) {
+  if (opts.themes && !opts.themes.includes(theme)) continue;
   const usesMode = modeRoleNames.has(fg) || modeRoleNames.has(bg);
   for (const mode of usesMode ? MODES : ["—"]) {
     const m = mode === "—" ? "DATA" : mode;
-    const back = opts.lift ? lift(resolve(bg, m), opts.lift) : resolve(bg, m);
-    const ratio = contrast(resolve(fg, m), back);
+    const back = opts.lift ? lift(resolve(bg, m, theme), opts.lift) : resolve(bg, m, theme);
+    const ratio = contrast(resolve(fg, m, theme), back);
     const pass = ratio >= min;
     if (!pass) failures++;
-    report.push({ mode, fg, bg: opts.lift ? `${bg} + ${opts.lift * 100}% white` : bg,
+    report.push({ theme, mode, fg, bg: opts.lift ? `${bg} + ${opts.lift * 100}% white` : bg,
       min, ratio: Math.round(ratio * 100) / 100, pass });
   }
 }
@@ -72,17 +77,27 @@ ${Object.entries(roles).map(([r, ref]) => `  --role-${r}: var(--prim-${ref});`).
 ${MODES.map((mode) => `[data-mode="${mode}"] {
 ${Object.entries(modeRoles[mode]).map(([r, ref]) => `  --role-${r}: var(--prim-${ref});`).join("\n")}
 }`).join("\n").replace(/^:root,\n\[data-mode="DATA"\]/, ':root,\n[data-mode="DATA"]')}
+
+/* Dark theme · data-theme="dark" on <html>. Roles first, then mode roles wherever a data-mode sits beneath it. */
+[data-theme="dark"] {
+  color-scheme: dark;
+${Object.entries(darkRoles).map(([r, ref]) => `  --role-${r}: var(--prim-${ref});`).join("\n")}
+}
+${MODES.map((mode) => `${mode === "DATA" ? '[data-theme="dark"],\n' : ""}[data-theme="dark"][data-mode="${mode}"],
+[data-theme="dark"] [data-mode="${mode}"] {
+${Object.entries(darkModeRoles[mode]).map(([r, ref]) => `  --role-${r}: var(--prim-${ref});`).join("\n")}
+}`).join("\n")}
 `;
 writeFileSync(new URL("../src/styles/colors.generated.css", import.meta.url), css);
 writeFileSync(
   new URL("../src/styleguide/colors.generated.json", import.meta.url),
   JSON.stringify({ primitives: Object.fromEntries(used.map((r) => [r, primitives[r]])),
-    roles, modeRoles, modes: MODES, report }, null, 2) + "\n",
+    roles, modeRoles, darkRoles, darkModeRoles, modes: MODES, themes: THEMES, report }, null, 2) + "\n",
 );
 
 for (const r of report) {
-  if (!r.pass) console.error(`FAIL [${r.mode}] ${r.fg} on ${r.bg}: ${r.ratio} < ${r.min}`);
+  if (!r.pass) console.error(`FAIL [${r.theme} ${r.mode}] ${r.fg} on ${r.bg}: ${r.ratio} < ${r.min}`);
 }
 console.log(`tokens: ${used.length} primitives, ${Object.keys(roles).length} roles, ` +
-  `${MODES.length} modes, ${report.length} pairs checked, ${failures} failed`);
+  `${MODES.length} modes × ${THEMES.length} themes, ${report.length} pairs checked, ${failures} failed`);
 if (failures) process.exit(1);

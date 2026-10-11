@@ -8,6 +8,43 @@
   --prim-data-ink: #1A47A8;
   --prim-data-soft: #E8EFFD;
   --prim-data-solid: #235FE0;
+  --prim-dk-action: #D08A5E;
+  --prim-dk-amber-soft: #3A2A0B;
+  --prim-dk-amber-text: #F5B942;
+  --prim-dk-canvas: #121110;
+  --prim-dk-control-track: #6E6961;
+  --prim-dk-data-ink: #93B4FF;
+  --prim-dk-data-soft: #1A2742;
+  --prim-dk-data-solid: #195AE6;
+  --prim-dk-focus: #F97316;
+  --prim-dk-green-text: #63D19E;
+  --prim-dk-grid-container: #171615;
+  --prim-dk-grid-header: #22201D;
+  --prim-dk-grid-line: #2B2926;
+  --prim-dk-grid-line-col: #34322E;
+  --prim-dk-ink: #EDEAE5;
+  --prim-dk-ink-2: #C4BEB5;
+  --prim-dk-ink-3: #A29C93;
+  --prim-dk-ink-4: #8A847B;
+  --prim-dk-ink-disabled: #5E5A54;
+  --prim-dk-l100-ink: #C6AAF6;
+  --prim-dk-l100-soft: #261B3D;
+  --prim-dk-l100-solid: #7645CE;
+  --prim-dk-line: #2F2D29;
+  --prim-dk-line-control: #4A4640;
+  --prim-dk-line-control-hover: #6A655D;
+  --prim-dk-line-strong: #3E3B36;
+  --prim-dk-model-ink: #6FD3A8;
+  --prim-dk-model-soft: #12291F;
+  --prim-dk-model-solid: #0A7652;
+  --prim-dk-red-soft: #3B1717;
+  --prim-dk-red-text: #F48A8A;
+  --prim-dk-shell: #191816;
+  --prim-dk-shell-alt: #24221F;
+  --prim-dk-slate-line: #3A4658;
+  --prim-dk-slate-soft: #1E2530;
+  --prim-dk-slate-text: #CBD5E1;
+  --prim-dk-surface: #1C1B19;
   --prim-focus-orange: #EA580C;
   --prim-green-700: #0B7C56;
   --prim-grid-container: #FBFBFC;
@@ -123,5 +160,70 @@
   --role-mode-solid: var(--prim-l100-solid);
   --role-mode-soft: var(--prim-l100-soft);
   --role-mode-ink: var(--prim-l100-ink);
+  --role-mode-deep: var(--prim-l100-ink);
+}
+
+/* Dark theme · data-theme="dark" on <html>. Roles first, then mode roles wherever a data-mode sits beneath it. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --role-canvas: var(--prim-dk-canvas);
+  --role-shell: var(--prim-dk-shell);
+  --role-shell-alt: var(--prim-dk-shell-alt);
+  --role-surface: var(--prim-dk-surface);
+  --role-subtle: var(--prim-dk-grid-header);
+  --role-hover: var(--prim-dk-shell-alt);
+  --role-inverse: var(--prim-dk-ink);
+  --role-grid-container: var(--prim-dk-grid-container);
+  --role-grid-line: var(--prim-dk-grid-line);
+  --role-grid-line-col: var(--prim-dk-grid-line-col);
+  --role-grid-header: var(--prim-dk-grid-header);
+  --role-fg-primary: var(--prim-dk-ink);
+  --role-fg-secondary: var(--prim-dk-ink-2);
+  --role-fg-tertiary: var(--prim-dk-ink-3);
+  --role-fg-icon: var(--prim-dk-ink-4);
+  --role-fg-disabled: var(--prim-dk-ink-disabled);
+  --role-fg-on-inverse: var(--prim-dk-surface);
+  --role-line-subtle: var(--prim-dk-line);
+  --role-line-strong: var(--prim-dk-line-strong);
+  --role-line-control: var(--prim-dk-line-control);
+  --role-line-control-hover: var(--prim-dk-line-control-hover);
+  --role-control-track: var(--prim-dk-control-track);
+  --role-action: var(--prim-dk-action);
+  --role-focus: var(--prim-dk-focus);
+  --role-l100-solid: var(--prim-dk-l100-solid);
+  --role-l100-soft: var(--prim-dk-l100-soft);
+  --role-l100-ink: var(--prim-dk-l100-ink);
+  --role-danger-text: var(--prim-dk-red-text);
+  --role-danger-soft: var(--prim-dk-red-soft);
+  --role-warning-icon: var(--prim-dk-amber-text);
+  --role-warning-text: var(--prim-dk-amber-text);
+  --role-warning-soft: var(--prim-dk-amber-soft);
+  --role-success-text: var(--prim-dk-green-text);
+  --role-success-icon: var(--prim-dk-green-text);
+  --role-success-soft: var(--prim-dk-model-soft);
+  --role-info-text: var(--prim-dk-slate-text);
+  --role-info-soft: var(--prim-dk-slate-soft);
+  --role-info-line: var(--prim-dk-slate-line);
+}
+[data-theme="dark"],
+[data-theme="dark"][data-mode="DATA"],
+[data-theme="dark"] [data-mode="DATA"] {
+  --role-mode-solid: var(--prim-dk-data-solid);
+  --role-mode-soft: var(--prim-dk-data-soft);
+  --role-mode-ink: var(--prim-dk-data-ink);
+  --role-mode-deep: var(--prim-data-ink);
+}
+[data-theme="dark"][data-mode="MODEL"],
+[data-theme="dark"] [data-mode="MODEL"] {
+  --role-mode-solid: var(--prim-dk-model-solid);
+  --role-mode-soft: var(--prim-dk-model-soft);
+  --role-mode-ink: var(--prim-dk-model-ink);
+  --role-mode-deep: var(--prim-model-ink);
+}
+[data-theme="dark"][data-mode="L100"],
+[data-theme="dark"] [data-mode="L100"] {
+  --role-mode-solid: var(--prim-dk-l100-solid);
+  --role-mode-soft: var(--prim-dk-l100-soft);
+  --role-mode-ink: var(--prim-dk-l100-ink);
   --role-mode-deep: var(--prim-l100-ink);
 }

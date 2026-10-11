@@ -214,6 +214,30 @@
   --default-transition-timing-function: var(--ease-standard);
 }
 
+/*
+ * Compact density · data-density="compact" on <html> (company setting).
+ * Utilities read these variables (h-grid-row → var(--spacing-grid-row)), so
+ * overriding them here shrinks every bar, control and row at once. Pane
+ * widths and type sizes stay: compact is about rows, not smaller text.
+ */
+[data-density="compact"] {
+  --spacing-row-header: 3rem;          /* 60 → 48 */
+  --spacing-row-domain: 2.5rem;        /* 48 → 40 */
+  --spacing-row-toolbar: 2.25rem;      /* 44 → 36 */
+  --spacing-row-structure: 2.5rem;     /* 48 → 40 */
+  --spacing-row-footer: 1.5rem;        /* 28 → 24 */
+  --spacing-button: 1.375rem;          /* 26 → 22 */
+  --spacing-control-h: 1.625rem;       /* 30 → 26 */
+  --spacing-control-form: 1.75rem;     /* 32 → 28 */
+  --spacing-pov: 1.875rem;             /* 34 → 30 */
+  --spacing-grid-head: 1.5rem;         /* 26 → 24 */
+  --spacing-grid-row: 1.5rem;          /* 30 → 24 */
+  --spacing-band: 1.375rem;            /* 26 → 22 */
+  --spacing-assign-band: 2.125rem;     /* 40 → 34 */
+  --spacing-head: 1.75rem;             /* 32 → 28 */
+  --spacing-row: 1.875rem;             /* 36 → 30 */
+}
+
 @layer base {
   *, ::before, ::after { border-color: var(--color-line-subtle); }
 

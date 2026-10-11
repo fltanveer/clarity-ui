@@ -80,6 +80,43 @@ Kept, even though Spec 110 differs, because the later founder ruling governs:
 | `data-ink` | #1A47A8 |
 | `data-soft` | #E8EFFD |
 | `data-solid` | #235FE0 |
+| `dk-action` | #D08A5E |
+| `dk-amber-soft` | #3A2A0B |
+| `dk-amber-text` | #F5B942 |
+| `dk-canvas` | #121110 |
+| `dk-control-track` | #6E6961 |
+| `dk-data-ink` | #93B4FF |
+| `dk-data-soft` | #1A2742 |
+| `dk-data-solid` | #195AE6 |
+| `dk-focus` | #F97316 |
+| `dk-green-text` | #63D19E |
+| `dk-grid-container` | #171615 |
+| `dk-grid-header` | #22201D |
+| `dk-grid-line` | #2B2926 |
+| `dk-grid-line-col` | #34322E |
+| `dk-ink` | #EDEAE5 |
+| `dk-ink-2` | #C4BEB5 |
+| `dk-ink-3` | #A29C93 |
+| `dk-ink-4` | #8A847B |
+| `dk-ink-disabled` | #5E5A54 |
+| `dk-l100-ink` | #C6AAF6 |
+| `dk-l100-soft` | #261B3D |
+| `dk-l100-solid` | #7645CE |
+| `dk-line` | #2F2D29 |
+| `dk-line-control` | #4A4640 |
+| `dk-line-control-hover` | #6A655D |
+| `dk-line-strong` | #3E3B36 |
+| `dk-model-ink` | #6FD3A8 |
+| `dk-model-soft` | #12291F |
+| `dk-model-solid` | #0A7652 |
+| `dk-red-soft` | #3B1717 |
+| `dk-red-text` | #F48A8A |
+| `dk-shell` | #191816 |
+| `dk-shell-alt` | #24221F |
+| `dk-slate-line` | #3A4658 |
+| `dk-slate-soft` | #1E2530 |
+| `dk-slate-text` | #CBD5E1 |
+| `dk-surface` | #1C1B19 |
 | `focus-orange` | #EA580C |
 | `green-700` | #0B7C56 |
 | `grid-container` | #FBFBFC |
@@ -288,6 +325,76 @@ Pairs that involve a mode role are checked in all three modes.
 | — | `success-icon` on `success-soft` | 4.63 | 3 | Pass |
 | — | `info-text` on `info-soft` | 9.45 | 4.5 | Pass |
 | — | `fg-on-inverse` on `inverse` | 16.25 | 4.5 | Pass |
+| — | `fg-primary` on `surface` | 14.34 | 4.5 | Pass |
+| — | `fg-primary` on `shell` | 14.79 | 4.5 | Pass |
+| — | `fg-primary` on `shell-alt` | 13.22 | 4.5 | Pass |
+| — | `fg-secondary` on `surface` | 9.33 | 4.5 | Pass |
+| — | `fg-secondary` on `shell` | 9.61 | 4.5 | Pass |
+| — | `fg-secondary` on `shell-alt` | 8.60 | 4.5 | Pass |
+| — | `fg-secondary` on `grid-header` | 8.81 | 4.5 | Pass |
+| — | `fg-tertiary` on `surface` | 6.32 | 4.5 | Pass |
+| — | `fg-tertiary` on `shell` | 6.52 | 4.5 | Pass |
+| — | `fg-tertiary` on `shell-alt` | 5.83 | 4.5 | Pass |
+| — | `fg-tertiary` on `canvas` | 6.93 | 4.5 | Pass |
+| — | `fg-tertiary` on `grid-header` | 5.97 | 4.5 | Pass |
+| DATA | `fg-tertiary` on `mode-soft` | 5.46 | 4.5 | Pass |
+| MODEL | `fg-tertiary` on `mode-soft` | 5.66 | 4.5 | Pass |
+| L100 | `fg-tertiary` on `mode-soft` | 5.90 | 4.5 | Pass |
+| — | `fg-icon` on `surface` | 4.64 | 3 | Pass |
+| — | `fg-icon` on `shell-alt` | 4.28 | 3 | Pass |
+| — | `fg-icon` on `shell` | 4.79 | 3 | Pass |
+| — | `control-track` on `surface` | 3.16 | 3 | Pass |
+| — | `control-thumb` on `control-track` | 5.45 | 3 | Pass |
+| DATA | `control-thumb` on `mode-solid` | 5.76 | 3 | Pass |
+| MODEL | `control-thumb` on `mode-solid` | 5.64 | 3 | Pass |
+| L100 | `control-thumb` on `mode-solid` | 5.98 | 3 | Pass |
+| DATA | `fg-on-accent` on `mode-solid` | 5.76 | 4.5 | Pass |
+| MODEL | `fg-on-accent` on `mode-solid` | 5.64 | 4.5 | Pass |
+| L100 | `fg-on-accent` on `mode-solid` | 5.98 | 4.5 | Pass |
+| DATA | `fg-on-accent` on `mode-solid + 10% white` | 4.77 | 4.5 | Pass |
+| MODEL | `fg-on-accent` on `mode-solid + 10% white` | 4.61 | 4.5 | Pass |
+| L100 | `fg-on-accent` on `mode-solid + 10% white` | 4.86 | 4.5 | Pass |
+| DATA | `mode-ink` on `mode-soft` | 7.23 | 4.5 | Pass |
+| MODEL | `mode-ink` on `mode-soft` | 8.48 | 4.5 | Pass |
+| L100 | `mode-ink` on `mode-soft` | 8.02 | 4.5 | Pass |
+| DATA | `mode-ink` on `surface` | 8.37 | 4.5 | Pass |
+| MODEL | `mode-ink` on `surface` | 9.47 | 4.5 | Pass |
+| L100 | `mode-ink` on `surface` | 8.59 | 4.5 | Pass |
+| DATA | `mode-ink` on `shell` | 8.63 | 4.5 | Pass |
+| MODEL | `mode-ink` on `shell` | 9.77 | 4.5 | Pass |
+| L100 | `mode-ink` on `shell` | 8.86 | 4.5 | Pass |
+| DATA | `mode-ink` on `shell-alt` | 7.72 | 3 | Pass |
+| MODEL | `mode-ink` on `shell-alt` | 8.73 | 3 | Pass |
+| L100 | `mode-ink` on `shell-alt` | 7.92 | 3 | Pass |
+| DATA | `mode-ink` on `mode-soft` | 7.23 | 4.5 | Pass |
+| MODEL | `mode-ink` on `mode-soft` | 8.48 | 4.5 | Pass |
+| L100 | `mode-ink` on `mode-soft` | 8.02 | 4.5 | Pass |
+| — | `focus` on `surface` | 6.14 | 3 | Pass |
+| — | `focus` on `shell` | 6.33 | 3 | Pass |
+| — | `focus` on `shell-alt` | 5.66 | 3 | Pass |
+| — | `focus` on `grid-header` | 5.80 | 3 | Pass |
+| — | `rail-fg` on `rail-bg` | 15.78 | 4.5 | Pass |
+| — | `rail-fg-secondary` on `rail-bg` | 8.30 | 4.5 | Pass |
+| DATA | `rail-fg` on `mode-deep` | 7.29 | 4.5 | Pass |
+| MODEL | `rail-fg` on `mode-deep` | 6.89 | 4.5 | Pass |
+| L100 | `rail-fg` on `mode-deep` | 9.80 | 4.5 | Pass |
+| — | `rail-fg-tertiary` on `rail-bg` | 6.16 | 4.5 | Pass |
+| — | `rail-fg-quiet` on `rail-bg` | 5.41 | 4.5 | Pass |
+| — | `action` on `shell` | 6.32 | 3 | Pass |
+| — | `action` on `surface` | 6.13 | 3 | Pass |
+| — | `l100-ink` on `l100-soft` | 8.02 | 4.5 | Pass |
+| — | `fg-on-accent` on `l100-solid` | 5.98 | 4.5 | Pass |
+| — | `danger-text` on `surface` | 7.25 | 4.5 | Pass |
+| — | `danger-text` on `shell` | 7.48 | 4.5 | Pass |
+| — | `fg-on-danger` on `danger-solid` | 6.47 | 4.5 | Pass |
+| — | `danger-text` on `danger-soft` | 6.70 | 4.5 | Pass |
+| — | `fg-on-accent` on `warning-solid` | 5.02 | 4.5 | Pass |
+| — | `warning-text` on `warning-soft` | 7.85 | 4.5 | Pass |
+| — | `warning-icon` on `surface` | 9.75 | 3 | Pass |
+| — | `success-text` on `surface` | 9.13 | 4.5 | Pass |
+| — | `success-icon` on `success-soft` | 8.18 | 3 | Pass |
+| — | `info-text` on `info-soft` | 10.38 | 4.5 | Pass |
+| — | `fg-on-inverse` on `inverse` | 14.34 | 4.5 | Pass |
 <!-- /AUTO:pairs -->
 
 ## Typography

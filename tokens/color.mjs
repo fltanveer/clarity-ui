@@ -15,7 +15,10 @@
  * decision and are what the reference screens show, so they win here; the
  * conflict is logged in docs/decisions.md.
  *
- * Light theme only: neither the prototype nor the canon defines a dark theme.
+ * Dark theme (2026-10-11, company setting): `darkRoles` / `darkModeRoles`
+ * re-point roles at warm-dark primitives under data-theme="dark". Same
+ * contrast pairs, checked in both themes. The rail is already dark and keeps
+ * its values.
  *
  * Tier 1 — primitives: named hex values, never used by components.
  * Tier 2 — roles: named by job. `roles` are global; `modeRoles` change with
@@ -80,6 +83,45 @@ export const primitives = {
   "slate-700": "#334155",
   "slate-300": "#CBD5E1",
   "slate-100": "#F1F5F9",
+
+  /* dark theme · warm near-black, same hue family as the light shell */
+  "dk-canvas": "#121110",
+  "dk-shell": "#191816",
+  "dk-shell-alt": "#24221F",
+  "dk-surface": "#1C1B19",
+  "dk-grid-container": "#171615",
+  "dk-grid-line": "#2B2926",
+  "dk-grid-line-col": "#34322E",
+  "dk-grid-header": "#22201D",
+  "dk-line": "#2F2D29",
+  "dk-line-strong": "#3E3B36",
+  "dk-line-control": "#4A4640",
+  "dk-line-control-hover": "#6A655D",
+  "dk-control-track": "#6E6961",
+  "dk-ink": "#EDEAE5",
+  "dk-ink-2": "#C4BEB5",
+  "dk-ink-3": "#A29C93",
+  "dk-ink-4": "#8A847B",
+  "dk-ink-disabled": "#5E5A54",
+  "dk-data-solid": "#195AE6",
+  "dk-data-soft": "#1A2742",
+  "dk-data-ink": "#93B4FF",
+  "dk-model-solid": "#0A7652",
+  "dk-model-soft": "#12291F",
+  "dk-model-ink": "#6FD3A8",
+  "dk-l100-solid": "#7645CE",
+  "dk-l100-soft": "#261B3D",
+  "dk-l100-ink": "#C6AAF6",
+  "dk-action": "#D08A5E",
+  "dk-focus": "#F97316",
+  "dk-red-text": "#F48A8A",
+  "dk-red-soft": "#3B1717",
+  "dk-amber-text": "#F5B942",
+  "dk-amber-soft": "#3A2A0B",
+  "dk-green-text": "#63D19E",
+  "dk-slate-text": "#CBD5E1",
+  "dk-slate-soft": "#1E2530",
+  "dk-slate-line": "#3A4658",
 };
 
 /* role → primitive, independent of mode */
@@ -150,6 +192,23 @@ export const roles = {
   "info-line": "slate-300",
 };
 
+/* Dark theme: only roles that change. Anything absent keeps its light value (the rail, white on solids). */
+export const darkRoles = {
+  "canvas": "dk-canvas", "shell": "dk-shell", "shell-alt": "dk-shell-alt", "surface": "dk-surface",
+  "subtle": "dk-grid-header", "hover": "dk-shell-alt", "inverse": "dk-ink",
+  "grid-container": "dk-grid-container", "grid-line": "dk-grid-line", "grid-line-col": "dk-grid-line-col", "grid-header": "dk-grid-header",
+  "fg-primary": "dk-ink", "fg-secondary": "dk-ink-2", "fg-tertiary": "dk-ink-3", "fg-icon": "dk-ink-4",
+  "fg-disabled": "dk-ink-disabled", "fg-on-inverse": "dk-surface",
+  "line-subtle": "dk-line", "line-strong": "dk-line-strong", "line-control": "dk-line-control",
+  "line-control-hover": "dk-line-control-hover", "control-track": "dk-control-track",
+  "action": "dk-action", "focus": "dk-focus",
+  "l100-solid": "dk-l100-solid", "l100-soft": "dk-l100-soft", "l100-ink": "dk-l100-ink",
+  "danger-text": "dk-red-text", "danger-soft": "dk-red-soft",
+  "warning-icon": "dk-amber-text", "warning-text": "dk-amber-text", "warning-soft": "dk-amber-soft",
+  "success-text": "dk-green-text", "success-icon": "dk-green-text", "success-soft": "dk-model-soft",
+  "info-text": "dk-slate-text", "info-soft": "dk-slate-soft", "info-line": "dk-slate-line",
+};
+
 /* role → primitive per mode. Chrome only (DEC-2026-08-17-C). */
 export const modeRoles = {
   /* mode-deep: dark mode tint for the active rail item (2026-09-14). */
@@ -158,12 +217,23 @@ export const modeRoles = {
   L100:  { "mode-solid": "l100-solid",  "mode-soft": "l100-soft",  "mode-ink": "l100-ink",  "mode-deep": "l100-ink" },
 };
 
+export const darkModeRoles = {
+  DATA:  { "mode-solid": "dk-data-solid",  "mode-soft": "dk-data-soft",  "mode-ink": "dk-data-ink",  "mode-deep": "data-ink" },
+  MODEL: { "mode-solid": "dk-model-solid", "mode-soft": "dk-model-soft", "mode-ink": "dk-model-ink", "mode-deep": "model-ink" },
+  L100:  { "mode-solid": "dk-l100-solid",  "mode-soft": "dk-l100-soft",  "mode-ink": "dk-l100-ink",  "mode-deep": "l100-ink" },
+};
+
 /*
  * Pairs that must pass. [foreground, background, minimum, options?]
  * 4.5 = text (WCAG 1.4.3). 3 = icons, focus and control boundaries (1.4.11).
  * A pair naming a mode role is checked in every mode.
  * `lift: 0.10` = the background is the solid with 10% white on top — the
  * translucent fill of buttons sitting on a mode-coloured bar.
+ * `themes` limits a pair to some themes. In dark, a mode solid cannot keep
+ * white text ≥4.5 AND stand ≥3:1 off the dark shell (green has no shade that
+ * does both), so white-on-solid wins; solid-as-indicator is checked in light
+ * only, and dark checks the lighter mode ink instead. Follow-up: a separate
+ * "mode-line" role for indicators in dark.
  */
 export const pairs = [
   ["fg-primary", "surface", 4.5], ["fg-primary", "shell", 4.5], ["fg-primary", "shell-alt", 4.5],
@@ -177,9 +247,10 @@ export const pairs = [
   ["control-track", "surface", 3], ["control-thumb", "control-track", 3], ["control-thumb", "mode-solid", 3],
   ["fg-on-accent", "mode-solid", 4.5], ["fg-on-accent", "mode-solid", 4.5, { lift: 0.10 }],
   ["mode-ink", "mode-soft", 4.5], ["mode-ink", "surface", 4.5], ["mode-ink", "shell", 4.5],
-  ["mode-solid", "shell", 3], ["mode-solid", "shell-alt", 3],
+  ["mode-solid", "shell", 3, { themes: ["light"] }], ["mode-solid", "shell-alt", 3, { themes: ["light"] }],
+  ["mode-ink", "shell-alt", 3, { themes: ["dark"] }], ["mode-ink", "mode-soft", 4.5, { themes: ["dark"] }],
   ["focus", "surface", 3], ["focus", "shell", 3], ["focus", "shell-alt", 3], ["focus", "grid-header", 3],
-  ["fg-on-inverse", "mode-solid", 3],
+  ["fg-on-inverse", "mode-solid", 3, { themes: ["light"] }],
   ["rail-fg", "rail-bg", 4.5], ["rail-fg-secondary", "rail-bg", 4.5],
   ["rail-fg", "mode-deep", 4.5],
   ["rail-fg-tertiary", "rail-bg", 4.5], ["rail-fg-quiet", "rail-bg", 4.5],
