@@ -4,6 +4,27 @@ import { Drawer } from "../shell/Drawer";
 import { Button, Notice, Segmented } from "../ui";
 import { DEFAULTS, isDefault, type CompanySettings, type PaneDefault } from "./schema";
 import { useSettings } from "./SettingsProvider";
+import { ColorField } from "./ColorField";
+import { deriveMode, deriveRail } from "./brand";
+import { hueGap } from "./color";
+import tokens from "../styleguide/colors.generated.json";
+
+const prim = tokens.primitives as Record<string, string>;
+const DEFAULT_COLOURS = { menu: prim["rail-bg"], data: prim["data-solid"], model: prim["model-solid"] };
+
+const MENU_PRESETS = [
+  { name: "Graphite", hex: "#1F2937" }, { name: "Navy", hex: "#0F1E3D" }, { name: "Forest", hex: "#0E2A20" },
+  { name: "Plum", hex: "#2A1533" }, { name: "Stone", hex: "#E7E3DC" }, { name: "White", hex: "#FFFFFF" },
+];
+const MODE_PRESETS = [
+  { name: "Blue", hex: "#235FE0" }, { name: "Indigo", hex: "#4338CA" }, { name: "Sky", hex: "#0369A1" },
+  { name: "Teal", hex: "#0F766E" }, { name: "Green", hex: "#0A7652" }, { name: "Orange", hex: "#C2410C" },
+  { name: "Crimson", hex: "#B42318" }, { name: "Slate", hex: "#334155" },
+];
+
+/* The colour in use after readability checks, if it is not the one picked. */
+const modeAdjusted = (hex: string | null) => { if (!hex) return null; const s = deriveMode(hex).light.solid; return s !== hex ? s : null; };
+const menuAdjusted = (hex: string | null) => { if (!hex) return null; const s = deriveRail(hex).bg; return s !== hex ? s : null; };
 
 function Row({ label, hint, children }: { label: string; hint: string; children: ReactNode }) {
   return (
@@ -73,6 +94,23 @@ export function CompanySettingsPanel({ open, onClose }: { open: boolean; onClose
                   options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />
               </Row>
             </Group>
+
+            <Group title="Brand colours">
+              <ColorField label="Menu" hint="Background of the workspace menu on the left. Text turns dark on a light menu."
+                value={draft.brand.menu} onChange={(menu) => set("brand", { menu })}
+                defaultColor={DEFAULT_COLOURS.menu} presets={MENU_PRESETS} adjusted={menuAdjusted(draft.brand.menu)} />
+              <ColorField label="DATA mode" hint="Action bar, selection and primary buttons while reading data."
+                value={draft.brand.data} onChange={(data) => set("brand", { data })}
+                defaultColor={DEFAULT_COLOURS.data} presets={MODE_PRESETS} adjusted={modeAdjusted(draft.brand.data)} />
+              <ColorField label="MODEL mode" hint="The same places while building models."
+                value={draft.brand.model} onChange={(model) => set("brand", { model })}
+                defaultColor={DEFAULT_COLOURS.model} presets={MODE_PRESETS} adjusted={modeAdjusted(draft.brand.model)} />
+            </Group>
+            {hueGap(draft.brand.data ?? DEFAULT_COLOURS.data, draft.brand.model ?? DEFAULT_COLOURS.model) < 30 && (
+              <Notice className="mt-2" tone="warning" title="DATA and MODEL look alike.">
+                People tell the two modes apart by colour. Pick clearly different hues.
+              </Notice>
+            )}
 
             <Group title="Layout defaults">
               <Row label="Members pane" hint="Left pane listing records.">

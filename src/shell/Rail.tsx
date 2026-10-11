@@ -28,6 +28,7 @@ export function Rail({ workspace, onWorkspace, expanded, onExpanded, l100, onL10
   return (
     <nav
       aria-label="Workspaces"
+      data-rail
       className={cx(
         /* on-bar: white focus ring — orange fails on the deep mode tint. */
         "on-bar flex shrink-0 flex-col overflow-hidden border-e border-rail-line bg-rail-bg text-rail-fg-secondary",
@@ -82,12 +83,12 @@ export function Rail({ workspace, onWorkspace, expanded, onExpanded, l100, onL10
                   expanded ? "px-edge" : "justify-center",
                   /* Active: deep mode tint, white text, light 3px bar — in every mode.
                      Platform is active only in L100, where the mode is violet. */
-                  on ? "bg-mode-deep font-semibold text-rail-fg" : "text-rail-fg-secondary hover:bg-rail-control hover:text-rail-fg",
+                  on ? "bg-mode-deep font-semibold text-fg-on-accent" : "text-rail-fg-secondary hover:bg-rail-control hover:text-rail-fg",
                   gear && "pe-9",
                 )}
               >
                 {on && (
-                  <span aria-hidden className="absolute inset-y-1.5 start-0 w-[3px] rounded-e-sm bg-rail-fg" />
+                  <span aria-hidden className="absolute inset-y-1.5 start-0 w-[3px] rounded-e-sm bg-fg-on-accent" />
                 )}
                 <Icon size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
                 {expanded && <span className="truncate">{ws.label}</span>}

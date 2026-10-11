@@ -8,6 +8,8 @@
  * only for a breaking change, and migrate in normalize().
  */
 
+import { isHex } from "./color";
+
 export const VERSION = 1;
 
 export type Theme = "light" | "dark" | "system";
@@ -19,6 +21,15 @@ export interface CompanySettings {
   appearance: {
     theme: Theme;
     density: Density;
+  };
+  /** One colour per slot; null = ClarityOS default. Readable variants are derived (settings/brand.ts). */
+  brand: {
+    /** Workspace menu (left rail) background. */
+    menu: string | null;
+    /** DATA mode chrome: action bar, selection, primary buttons. */
+    data: string | null;
+    /** MODEL mode chrome. */
+    model: string | null;
   };
   /** How the work area opens. People can still open and close panes as they work. */
   layout: {
@@ -32,6 +43,7 @@ export interface CompanySettings {
 export const DEFAULTS: CompanySettings = {
   version: VERSION,
   appearance: { theme: "light", density: "comfortable" },
+  brand: { menu: null, data: null, model: null },
   layout: { membersPane: "open", propertiesPane: "open", details: "open" },
 };
 
@@ -44,13 +56,15 @@ const PANE = ["open", "collapsed"] as const;
 
 /** Any input → a valid CompanySettings. */
 export function normalize(raw: unknown): CompanySettings {
-  const r = obj(raw), a = obj(r.appearance), l = obj(r.layout);
+  const r = obj(raw), a = obj(r.appearance), b = obj(r.brand), l = obj(r.layout);
+  const hex = (v: unknown) => (isHex(v) ? v.toUpperCase() : null);
   return {
     version: VERSION,
     appearance: {
       theme: pick(a.theme, ["light", "dark", "system"] as const, DEFAULTS.appearance.theme),
       density: pick(a.density, ["comfortable", "compact"] as const, DEFAULTS.appearance.density),
     },
+    brand: { menu: hex(b.menu), data: hex(b.data), model: hex(b.model) },
     layout: {
       membersPane: pick(l.membersPane, PANE, DEFAULTS.layout.membersPane),
       propertiesPane: pick(l.propertiesPane, PANE, DEFAULTS.layout.propertiesPane),

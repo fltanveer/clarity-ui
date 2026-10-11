@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { currentCompany, type CompanyRole } from "../lib/session";
 import { DEFAULTS, type CompanySettings } from "./schema";
 import { browserStore, type SettingsStore } from "./store";
+import { brandCss, railTone } from "./brand";
 
 export interface SettingsContextValue {
   company: { id: string; name: string };
@@ -74,6 +75,15 @@ export function SettingsProvider({ children, store = browserStore }: { children:
     html.dataset.theme = dark ? "dark" : "light";
     html.dataset.density = density;
   }, [dark, density]);
+
+  /* Brand colours: derived CSS variables in one <style>, replaced whenever the brand changes. */
+  const { brand } = settings;
+  useEffect(() => {
+    let el = document.getElementById("clarity-brand") as HTMLStyleElement | null;
+    if (!el) { el = document.createElement("style"); el.id = "clarity-brand"; document.head.appendChild(el); }
+    el.textContent = brandCss(brand);
+    document.documentElement.dataset.railTone = railTone(brand);
+  }, [brand]);
 
   const save = useCallback((next: CompanySettings) => {
     if (!canAdminister) return;

@@ -95,8 +95,9 @@
   --color-on-bar-hover: oklch(1 0 0 / 0.2);
   --color-on-bar-edge: oklch(1 0 0 / 0.45);
   --color-on-bar-edge-strong: oklch(1 0 0 / 0.6);
-  --color-rail-active: oklch(1 0 0 / 0.13);
-  --color-rail-control: oklch(1 0 0 / 0.06);
+  /* Rail hover/active fills: white on the default dark menu; a light company menu swaps them for black (settings/brand.ts). */
+  --color-rail-active: var(--role-rail-active, oklch(1 0 0 / 0.13));
+  --color-rail-control: var(--role-rail-control, oklch(1 0 0 / 0.06));
   --color-scrim: oklch(0.22 0.01 60 / 0.34);
 
   --color-transparent: transparent;
@@ -260,6 +261,8 @@
     outline-offset: -2px;
   }
   .on-bar :focus-visible { outline-color: var(--color-fg-on-accent); }
+  /* A light company menu: a white ring would vanish, so the rail keeps the orange ring, drawn just outside the item. */
+  [data-rail-tone="light"] [data-rail] :focus-visible { outline-color: var(--color-focus); outline-offset: 1px; }
 
   @media (forced-colors: active) {
     :focus-visible { outline-color: Highlight; }
